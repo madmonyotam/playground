@@ -17,7 +17,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         // Initial setup for direction
         document.documentElement.dir = config.language === 'he' ? 'rtl' : 'ltr';
         document.documentElement.lang = config.language;
-    }, []);
+    }, [config.language]);
 
     const updateConfig = (updates: Partial<AppConfig>) => {
         const newConfig = { ...config, ...updates };

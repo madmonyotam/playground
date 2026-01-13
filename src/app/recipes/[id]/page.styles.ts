@@ -27,7 +27,7 @@ export const RecipeHeader = styled.header`
 
 export const DetailSection = styled.section`
   margin-bottom: 32px;
-  background: white;
+  background: ${({ theme }) => theme.colors.surface};
   padding: 24px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);

@@ -12,15 +12,15 @@ export function useTranslation() {
 
     const t = (key: string) => {
         const keys = key.split('.');
-        let value: any = locale;
+        let value: unknown = locale;
         for (const k of keys) {
-            if (value && typeof value === 'object' && k in value) {
-                value = value[k];
+            if (value && typeof value === 'object' && value !== null && k in (value as Record<string, unknown>)) {
+                value = (value as Record<string, unknown>)[k];
             } else {
                 return key; // Fallback to key if not found
             }
         }
-        return value;
+        return value as string;
     };
 
     return { t, dir: config.language === 'he' ? 'rtl' : 'ltr' };

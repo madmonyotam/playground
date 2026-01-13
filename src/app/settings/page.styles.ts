@@ -12,7 +12,7 @@ export const PageContainer = styled.div`
 `;
 
 export const Section = styled.section`
-  background: white;
+  background: ${({ theme }) => theme.colors.surface};
   padding: 32px;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);

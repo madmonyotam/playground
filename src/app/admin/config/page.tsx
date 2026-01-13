@@ -40,7 +40,7 @@ export default function AdminConfigPage() {
                 <h3>Monetization Tier</h3>
                 <Select
                     value={config.tier}
-                    onChange={(val) => setConfig({ ...config, tier: val as any })}
+                    onChange={(val) => setConfig({ ...config, tier: val as AppConfig['tier'] })}
                     options={[
                         { value: 'FREE', label: 'Free' },
                         { value: 'PREMIUM', label: 'Premium' },
