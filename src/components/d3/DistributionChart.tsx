@@ -117,17 +117,27 @@ const DistributionChart = memo(({
             xAxis = g.append('g').attr('class', 'x-axis');
         }
 
-        xAxis
+        const xAxisTransition = xAxis
             .attr('transform', `translate(0,${height})`)
             .transition().duration(animationSpeed)
             .call(d3.axisBottom(xScale).tickSize(0).tickPadding(10));
+
+        // Aggressively hide domain on the transition
+        xAxisTransition.selectAll('.domain')
+            .style('stroke', 'none')
+            .style('display', 'none')
+            .attr('stroke', 'none');
 
         xAxis.selectAll('text')
             .style('fill', textColor)
             .style('font-size', '12px')
             .style('font-family', 'sans-serif');
 
-        xAxis.select('.domain').remove(); // Remove axis line for cleaner look
+        // Force hide immediately on the selection too
+        xAxis.selectAll('.domain')
+            .style('stroke', 'none')
+            .style('display', 'none')
+            .attr('stroke', 'none');
 
         // X Axis Label
         let xLabelText = g.select<SVGTextElement>('.x-axis-label');
@@ -151,14 +161,24 @@ const DistributionChart = memo(({
             yAxis = g.append('g').attr('class', 'y-axis');
         }
 
-        yAxis
+        const yAxisTransition = yAxis
             .transition().duration(animationSpeed)
-            .call(d3.axisLeft(yScale).ticks(5).tickSize(-width).tickPadding(10))
-            .call(g => g.select('.domain').remove())
-            .call(g => g.selectAll('.tick line')
-                .attr('stroke-opacity', 0.5)
-                .attr('stroke-dasharray', '4,4')
-                .attr('stroke', gridColor));
+            .call(d3.axisLeft(yScale).ticks(5).tickSize(-width).tickPadding(10));
+
+        yAxisTransition.select('.domain')
+            .style('stroke', 'none')
+            .style('display', 'none')
+            .remove();
+
+        yAxisTransition.selectAll('.tick line')
+            .attr('stroke-opacity', 0.5)
+            .attr('stroke-dasharray', '4,4')
+            .attr('stroke', gridColor);
+
+        // Force hide immediately on the selection too
+        yAxis.selectAll('.domain')
+            .style('stroke', 'none')
+            .style('display', 'none');
 
         yAxis.selectAll('text')
             .style('fill', textColor)
@@ -201,6 +221,7 @@ const DistributionChart = memo(({
             .attr('y', yScale(0))
             .attr('height', 0)
             .style('opacity', 0)
+            .attr('stroke-opacity', 0) // Fade stroke out
             .remove();
 
         // Enter
@@ -215,7 +236,8 @@ const DistributionChart = memo(({
             .style('fill', `url(#${barGradientId})`)
             .attr('stroke', color)
             .attr('stroke-width', 1)
-            .style('opacity', 0);
+            .style('opacity', 0)
+            .attr('stroke-opacity', 0); // Start with no stroke
 
         // Update (merge enter and update)
         barsEnter.merge(bars)
@@ -226,9 +248,12 @@ const DistributionChart = memo(({
             .attr('height', d => yScale(0) - yScale(d.percentage))
             .style('fill', `url(#${barGradientId})`)
             .attr('stroke', color)
-            .style('opacity', 1);
+            .style('opacity', 1)
+            .attr('stroke-opacity', 1); // Fade stroke in
 
     }, [category, animationSpeed]);
+
+    const prevDataRef = React.useRef<HistogramBin[]>([]);
 
     const paintLine = useCallback((
         g: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -237,6 +262,8 @@ const DistributionChart = memo(({
         color: string
     ) => {
         const { xScale, yScale } = scales;
+        const prevData = prevDataRef.current;
+        const shouldMorph = prevData.length === data.length && prevData.length > 0;
 
         const lineGenerator = d3.line<HistogramBin>()
             .x(d => (xScale(d.range)! + xScale.bandwidth() / 2))
@@ -247,19 +274,39 @@ const DistributionChart = memo(({
         let path = g.select<SVGPathElement>('.trend-line');
         if (path.empty()) {
             path = g.append('path').attr('class', 'trend-line');
+            // Initialize with zero opacity or starting position if needed
+            path.style('opacity', 0);
         }
 
-        // We can't easily animate the 'd' attribute directly for shape changes in a way that looks perfect without interpolation
-        // But for simple updates, D3 handles it decently.
+        const t = g.transition().duration(animationSpeed);
+
         path
             .datum(data)
-            .transition().duration(animationSpeed)
-            .attr('d', lineGenerator)
             .attr('fill', 'none')
             .attr('stroke', color)
             .attr('stroke-width', 3)
             .attr('stroke-linecap', 'round')
             .style('filter', `url(#glow-${category})`);
+
+        if (shouldMorph) {
+            // Safe to morph shape directly
+            path.transition(t as any)
+                .style('opacity', 1)
+                .attr('d', lineGenerator);
+        } else {
+            // Fade out, update shape, fade in (to avoid knots)
+            path.transition()
+                .duration(animationSpeed / 2)
+                .style('opacity', 0)
+                .on('end', function () {
+                    const dString = lineGenerator(data);
+                    d3.select(this)
+                        .attr('d', dString)
+                        .transition()
+                        .duration(animationSpeed / 2)
+                        .style('opacity', 1);
+                });
+        }
 
         // Add points
         const points = g.selectAll<SVGCircleElement, HistogramBin>('.point')
@@ -286,6 +333,8 @@ const DistributionChart = memo(({
             .attr('r', 4)
             .attr('fill', color);
 
+        // Update ref
+        prevDataRef.current = data;
 
     }, [category, animationSpeed]);
 
