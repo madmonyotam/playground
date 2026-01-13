@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import BarChartExample from '@/components/d3/BarChartExample';
 import CircleChartExample from '@/components/d3/CircleChartExample';
+import DistributionChartExample from '@/components/d3/DistributionChartExample';
 
 // Helper types for the examples map
 type ExampleComponent = React.FC;
@@ -22,6 +23,10 @@ const EXAMPLES: Record<string, ExampleDefinition> = {
   circle: {
     label: 'Circle Chart',
     component: CircleChartExample,
+  },
+  distribution: {
+    label: 'Distribution Chart',
+    component: DistributionChartExample,
   },
 };
 
