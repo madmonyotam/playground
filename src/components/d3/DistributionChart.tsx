@@ -292,7 +292,7 @@ const DistributionChart = memo(({
             // Safe to morph shape directly
             path.transition(t as any)
                 .style('opacity', 1)
-                .attr('d', lineGenerator);
+                .attr('d', d => lineGenerator(d as HistogramBin[]));
         } else {
             // Fade out, update shape, fade in (to avoid knots)
             path.transition()
