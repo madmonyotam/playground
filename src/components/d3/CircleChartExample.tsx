@@ -3,14 +3,7 @@
 import React, { useCallback } from 'react';
 import * as d3 from 'd3';
 import BaseChart from './BaseChart';
-import styled from 'styled-components';
-
-const ExampleContainer = styled.div`
-  width: 100%;
-  height: 500px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-`;
+import PlaygroundCard from './PlaygroundCard';
 
 const CircleChartExample = () => {
     const onReady = useCallback((selection: d3.Selection<SVGGElement, unknown, null, undefined>, { width, height }: { width: number; height: number }) => {
@@ -44,10 +37,9 @@ const CircleChartExample = () => {
     }, []);
 
     return (
-        <ExampleContainer>
-            <h3>Circle Chart Example</h3>
+        <PlaygroundCard title="Circle Chart Example" height={500}>
             <BaseChart onReady={onReady} />
-        </ExampleContainer>
+        </PlaygroundCard>
     );
 };
 
