@@ -138,6 +138,7 @@ const DistributionChartExample = () => {
                     theme={theme}
                     xAxisLabel={category === 'length_histogram' ? 'LENGTH (MM)' : 'WIDTH (MM)'}
                     primaryColor="#3b82f6"
+                    maxXTicks={10}
                 />
             </div>
         </PlaygroundCard>

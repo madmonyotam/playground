@@ -18,6 +18,7 @@ interface DistributionChartProps {
     animationSpeed?: number;
     xAxisLabel?: string;
     yAxisLabel?: string;
+    maxXTicks?: number;
 }
 
 const DistributionChart = memo(({
@@ -28,7 +29,8 @@ const DistributionChart = memo(({
     theme = 'dark',
     animationSpeed = 800,
     xAxisLabel = 'LENGTH (MM)',
-    yAxisLabel = 'PERCENTAGE (%)'
+    yAxisLabel = 'PERCENTAGE (%)',
+    maxXTicks
 }: DistributionChartProps) => {
 
     const data = useMemo(() => {
@@ -104,10 +106,10 @@ const DistributionChart = memo(({
     const paintAxes = useCallback((
         g: d3.Selection<SVGGElement, unknown, null, undefined>,
         scales: { xScale: d3.ScaleBand<string>; yScale: d3.ScaleLinear<number, number> },
-        config: { width: number; height: number; theme: 'dark' | 'light'; xAxisLabel: string; yAxisLabel: string }
+        config: { width: number; height: number; theme: 'dark' | 'light'; xAxisLabel: string; yAxisLabel: string; maxXTicks?: number }
     ) => {
         const { xScale, yScale } = scales;
-        const { width, height, theme: currentTheme, xAxisLabel: xLabel, yAxisLabel: yLabel } = config;
+        const { width, height, theme: currentTheme, xAxisLabel: xLabel, yAxisLabel: yLabel, maxXTicks } = config;
         const textColor = currentTheme === 'dark' ? '#9ca3af' : '#4b5563';
         const gridColor = currentTheme === 'dark' ? '#374151' : '#e5e7eb';
 
@@ -117,10 +119,17 @@ const DistributionChart = memo(({
             xAxis = g.append('g').attr('class', 'x-axis');
         }
 
+        // Calculate ticks
+        let tickValues = xScale.domain();
+        if (maxXTicks && tickValues.length > maxXTicks) {
+            const step = Math.ceil(tickValues.length / maxXTicks);
+            tickValues = tickValues.filter((_, i) => i % step === 0);
+        }
+
         const xAxisTransition = xAxis
             .attr('transform', `translate(0,${height})`)
             .transition().duration(animationSpeed)
-            .call(d3.axisBottom(xScale).tickSize(0).tickPadding(10));
+            .call(d3.axisBottom(xScale).tickValues(tickValues).tickSize(0).tickPadding(10));
 
         // Aggressively hide domain on the transition
         xAxisTransition.selectAll('.domain')
@@ -433,7 +442,8 @@ const DistributionChart = memo(({
             height: dimensions.height,
             theme,
             xAxisLabel,
-            yAxisLabel
+            yAxisLabel,
+            maxXTicks
         });
 
         paintBars(selection, data, scales, primaryColor);
@@ -449,7 +459,7 @@ const DistributionChart = memo(({
                 selection.style('pointer-events', 'all');
             });
 
-    }, [data, primaryColor, theme, xAxisLabel, yAxisLabel, setupGradients, prepareScales, paintAxes, paintBars, paintLine, attachTooltipEvents, animationSpeed]);
+    }, [data, primaryColor, theme, xAxisLabel, yAxisLabel, setupGradients, prepareScales, paintAxes, paintBars, paintLine, attachTooltipEvents, animationSpeed, maxXTicks]);
 
     return (
         <BaseChart
