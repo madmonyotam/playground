@@ -80,6 +80,7 @@ const mockData = {
 const DistributionChartExample = () => {
     const [category, setCategory] = useState('length_histogram');
     const [binSize, setBinSize] = useState('10mm');
+    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
     const binSizeKey = `bin_size_${binSize}`;
 
@@ -112,14 +113,29 @@ const DistributionChartExample = () => {
                         </Button>
                     ))}
                 </ButtonGroup>
+
+                <ButtonGroup>
+                    <Button
+                        $active={theme === 'dark'}
+                        onClick={() => setTheme('dark')}
+                    >
+                        Dark
+                    </Button>
+                    <Button
+                        $active={theme === 'light'}
+                        onClick={() => setTheme('light')}
+                    >
+                        Light
+                    </Button>
+                </ButtonGroup>
             </Controls>
 
-            <div style={{ height: '400px', width: '100%', background: '#0f172a', borderRadius: '8px', padding: '1rem' }}>
+            <div style={{ height: '400px', width: '100%', background: theme === 'dark' ? '#0f172a' : '#ffffff', borderRadius: '8px', padding: '1rem', transition: 'background 0.3s' }}>
                 <DistributionChart
                     dataSource={mockData}
                     category={category}
                     binSizeKey={binSizeKey}
-                    theme="dark"
+                    theme={theme}
                     xAxisLabel={category === 'length_histogram' ? 'LENGTH (MM)' : 'WIDTH (MM)'}
                     primaryColor="#3b82f6"
                 />

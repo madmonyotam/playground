@@ -139,6 +139,9 @@ const DistributionChart = memo(({
             .style('display', 'none')
             .attr('stroke', 'none');
 
+        // Ensure axis doesn't block events
+        xAxis.style('pointer-events', 'none');
+
         // X Axis Label
         let xLabelText = g.select<SVGTextElement>('.x-axis-label');
         if (xLabelText.empty()) {
@@ -179,6 +182,9 @@ const DistributionChart = memo(({
         yAxis.selectAll('.domain')
             .style('stroke', 'none')
             .style('display', 'none');
+
+        // Ensure axis doesn't block events
+        yAxis.style('pointer-events', 'none');
 
         yAxis.selectAll('text')
             .style('fill', textColor)
@@ -286,7 +292,8 @@ const DistributionChart = memo(({
             .attr('stroke', color)
             .attr('stroke-width', 3)
             .attr('stroke-linecap', 'round')
-            .style('filter', `url(#glow-${category})`);
+            .style('filter', `url(#glow-${category})`)
+            .style('pointer-events', 'none');
 
         if (shouldMorph) {
             // Safe to morph shape directly
@@ -321,6 +328,7 @@ const DistributionChart = memo(({
         const pointsEnter = points.enter()
             .append('circle')
             .attr('class', 'point')
+            .style('pointer-events', 'none')
             .attr('r', 0)
             .attr('cx', d => (xScale(d.range)! + xScale.bandwidth() / 2))
             .attr('cy', yScale(0))
@@ -339,11 +347,83 @@ const DistributionChart = memo(({
     }, [category, animationSpeed]);
 
 
+    const attachTooltipEvents = useCallback((
+        g: d3.Selection<SVGGElement, unknown, null, undefined>,
+        primaryColor: string,
+        theme: 'dark' | 'light'
+    ) => {
+        // 1. Setup Tooltip Div
+        const container = d3.select(g.node()!.ownerSVGElement!.parentNode as HTMLElement);
+        let tooltip = container.select<HTMLDivElement>('.distribution-tooltip');
+
+        // Styles
+        const bgColor = theme === 'dark' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+        const textColor = theme === 'dark' ? '#f8fafc' : '#1e293b';
+        const borderColor = `${primaryColor}33`;
+        const shadow = `0 4px 12px ${primaryColor}40`;
+
+        if (tooltip.empty()) {
+            tooltip = container.append('div')
+                .attr('class', 'distribution-tooltip')
+                .style('position', 'absolute')
+                .style('top', 0)
+                .style('left', 0)
+                .style('opacity', 0)
+                .style('pointer-events', 'none')
+                .style('padding', '8px 12px')
+                .style('border-radius', '8px')
+                .style('font-family', 'Inter, system-ui, sans-serif')
+                .style('font-size', '12px')
+                .style('z-index', '100')
+                // Add transform transition for smooth movement
+                .style('transition', 'opacity 0.2s, transform 0.15s ease-out')
+                .style('backdrop-filter', 'blur(10px)')
+                .style('-webkit-backdrop-filter', 'blur(10px)');
+        }
+
+        // Apply/Update dynamic styles
+        tooltip
+            .style('background', bgColor)
+            .style('color', textColor)
+            .style('border', `1px solid ${borderColor}`)
+            .style('box-shadow', shadow);
+
+        // 2. Attach events to bars
+        const bars = g.selectAll<SVGRectElement, HistogramBin>('.bar');
+
+        bars.on('mouseover', function (event, d) {
+            tooltip.style('opacity', 1);
+            d3.select(this)
+                .transition().duration(200)
+                .style('opacity', 0.9);
+        })
+            .on('mousemove', function (event, d) {
+                const [x, y] = d3.pointer(event, container.node());
+                // Use transform for smooth transition
+                tooltip
+                    .html(`
+                        <div style="font-weight: 500; opacity: 0.8; margin-bottom: 2px;">${d.range}</div>
+                        <div style="font-weight: 700; color: ${primaryColor}; font-size: 14px;">${d.percentage.toFixed(1)}%</div>
+                    `)
+                    .style('transform', `translate(${x + 15}px, ${y + 15}px)`);
+            })
+            .on('mouseleave', function () {
+                tooltip.style('opacity', 0);
+                d3.select(this)
+                    .transition().duration(200)
+                    .style('opacity', 1);
+            });
+
+    }, []);
+
     const onReady = useCallback((
         selection: d3.Selection<SVGGElement, unknown, null, undefined>,
         dimensions: { width: number; height: number }
     ) => {
         if (!data || data.length === 0) return;
+
+        // Block interactions during transition
+        selection.style('pointer-events', 'none');
 
         setupGradients(selection, primaryColor);
         const scales = prepareScales(data, dimensions.width, dimensions.height);
@@ -359,7 +439,17 @@ const DistributionChart = memo(({
         paintBars(selection, data, scales, primaryColor);
         paintLine(selection, data, scales, primaryColor);
 
-    }, [data, primaryColor, theme, xAxisLabel, yAxisLabel, setupGradients, prepareScales, paintAxes, paintBars, paintLine]);
+        // Attach interactive events
+        attachTooltipEvents(selection, primaryColor, theme);
+
+        // Re-enable interactions after transition
+        selection.transition()
+            .duration(animationSpeed)
+            .on('end', () => {
+                selection.style('pointer-events', 'all');
+            });
+
+    }, [data, primaryColor, theme, xAxisLabel, yAxisLabel, setupGradients, prepareScales, paintAxes, paintBars, paintLine, attachTooltipEvents, animationSpeed]);
 
     return (
         <BaseChart
