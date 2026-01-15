@@ -278,7 +278,7 @@ const DistributionChart = memo(({
     ) => {
         const { xScale, yScale } = scales;
         const prevData = prevDataRef.current;
-        const shouldMorph = prevData.length === data.length && prevData.length > 0;
+        const isFirstRender = prevData.length === 0;
 
         const lineGenerator = d3.line<HistogramBin>()
             .x(d => (xScale(d.range)! + xScale.bandwidth() / 2))
@@ -289,11 +289,13 @@ const DistributionChart = memo(({
         let path = g.select<SVGPathElement>('.trend-line');
         if (path.empty()) {
             path = g.append('path').attr('class', 'trend-line');
-            // Initialize with zero opacity or starting position if needed
+            // Initialize with zero opacity
             path.style('opacity', 0);
         }
 
         const t = g.transition().duration(animationSpeed);
+
+        const newPathD = lineGenerator(data);
 
         path
             .datum(data)
@@ -304,27 +306,63 @@ const DistributionChart = memo(({
             .style('filter', `url(#glow-${category})`)
             .style('pointer-events', 'none');
 
-        if (shouldMorph) {
-            // Safe to morph shape directly
-            path.transition(t as any)
-                .style('opacity', 1)
-                .attr('d', d => lineGenerator(d as HistogramBin[]));
+        if (isFirstRender) {
+            // First render: Fade in and set d
+            path.attr('d', newPathD!)
+                .transition(t as any)
+                .style('opacity', 1);
         } else {
-            // Fade out, update shape, fade in (to avoid knots)
-            path.transition()
-                .duration(animationSpeed / 2)
-                .style('opacity', 0)
-                .on('end', function () {
-                    const dString = lineGenerator(data);
-                    d3.select(this)
-                        .attr('d', dString)
-                        .transition()
-                        .duration(animationSpeed / 2)
-                        .style('opacity', 1);
+            // Morphing using sampling
+            path.style('opacity', 1) // Ensure it's visible
+                .transition(t as any)
+                .attrTween('d', function (d) {
+                    const previous = d3.select(this).attr('d');
+                    const current = newPathD!;
+
+                    // Create hidden paths to sample length
+                    // We need to use the DOM to compute path length, or use a library.
+                    // Since we are in a browser environment, creating elements is fine.
+                    const pathSrc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    pathSrc.setAttribute('d', previous);
+                    const pathTgt = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    pathTgt.setAttribute('d', current);
+
+                    const lenSrc = pathSrc.getTotalLength();
+                    const lenTgt = pathTgt.getTotalLength();
+
+                    // Number of samples for smooth interpolation
+                    const n = 100;
+                    const pointsSrc: { x: number, y: number }[] = [];
+                    const pointsTgt: { x: number, y: number }[] = [];
+
+                    for (let i = 0; i <= n; i++) {
+                        const p1 = pathSrc.getPointAtLength(lenSrc * i / n);
+                        const p2 = pathTgt.getPointAtLength(lenTgt * i / n);
+                        pointsSrc.push({ x: p1.x, y: p1.y });
+                        pointsTgt.push({ x: p2.x, y: p2.y });
+                    }
+
+                    // Interpolator function
+                    return function (t: number) {
+                        const interpolatedPoints = pointsSrc.map((p1, i) => {
+                            const p2 = pointsTgt[i];
+                            return {
+                                x: p1.x * (1 - t) + p2.x * t,
+                                y: p1.y * (1 - t) + p2.y * t
+                            };
+                        });
+
+                        // Reconstruct path
+                        return d3.line<{ x: number, y: number }>()
+                            .x(p => p.x)
+                            .y(p => p.y)
+                            .curve(d3.curveNatural)
+                            (interpolatedPoints)!;
+                    };
                 });
         }
 
-        // Add points
+        // Add points (circles)
         const points = g.selectAll<SVGCircleElement, HistogramBin>('.point')
             .data(data, d => d.range);
 
@@ -348,7 +386,8 @@ const DistributionChart = memo(({
             .attr('cx', d => (xScale(d.range)! + xScale.bandwidth() / 2))
             .attr('cy', d => yScale(d.percentage))
             .attr('r', 4)
-            .attr('fill', color);
+            .attr('fill', color)
+            .style('opacity', 1);
 
         // Update ref
         prevDataRef.current = data;
@@ -370,6 +409,9 @@ const DistributionChart = memo(({
         const textColor = theme === 'dark' ? '#f8fafc' : '#1e293b';
         const borderColor = `${primaryColor}33`;
         const shadow = `0 4px 12px ${primaryColor}40`;
+        const highlightStroke = d3.color(primaryColor)
+            ? (theme === 'dark' ? d3.color(primaryColor)!.brighter(1.5).formatHex() : d3.color(primaryColor)!.darker(1.5).formatHex())
+            : '#ffffff';
 
         if (tooltip.empty()) {
             tooltip = container.append('div')
@@ -405,6 +447,14 @@ const DistributionChart = memo(({
             d3.select(this)
                 .transition().duration(200)
                 .style('opacity', 0.9);
+
+            // Highlight corresponding point
+            g.selectAll<SVGCircleElement, HistogramBin>('.point')
+                .filter(p => p.range === d.range)
+                .transition().duration(200)
+                .attr('r', 6)
+                .attr('stroke', highlightStroke)
+                .attr('stroke-width', 1.5);
         })
             .on('mousemove', function (event, d) {
                 const [x, y] = d3.pointer(event, container.node());
@@ -416,11 +466,18 @@ const DistributionChart = memo(({
                     `)
                     .style('transform', `translate(${x + 15}px, ${y + 15}px)`);
             })
-            .on('mouseleave', function () {
+            .on('mouseleave', function (event, d) {
                 tooltip.style('opacity', 0);
                 d3.select(this)
                     .transition().duration(200)
                     .style('opacity', 1);
+
+                // Un-highlight corresponding point
+                g.selectAll<SVGCircleElement, HistogramBin>('.point')
+                    .filter(p => p.range === d.range)
+                    .transition().duration(200)
+                    .attr('r', 4)
+                    .attr('stroke', 'none');
             });
 
     }, []);
