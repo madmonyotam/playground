@@ -81,12 +81,15 @@ const DistributionChartExample = () => {
     const [category, setCategory] = useState('length_histogram');
     const [binSize, setBinSize] = useState('10mm');
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+    const [gridLines, setGridLines] = useState(true);
+    const [curveType, setCurveType] = useState<'monotoneX' | 'natural' | 'linear'>('monotoneX');
+    const [barPadding, setBarPadding] = useState(0.2);
 
     const binSizeKey = `bin_size_${binSize}`;
 
     return (
         <PlaygroundCard title="Distribution Chart">
-            <Controls>
+            <Controls style={{ flexWrap: 'wrap' }}>
                 <ButtonGroup>
                     <Button
                         $active={category === 'length_histogram'}
@@ -128,6 +131,37 @@ const DistributionChartExample = () => {
                         Light
                     </Button>
                 </ButtonGroup>
+
+                <ButtonGroup>
+                    <Button
+                        $active={gridLines}
+                        onClick={() => setGridLines(!gridLines)}
+                    >
+                        Grid: {gridLines ? 'On' : 'Off'}
+                    </Button>
+                </ButtonGroup>
+
+                <ButtonGroup>
+                    <Button $active={false} as="div" style={{ cursor: 'default' }}>
+                        Curve:
+                    </Button>
+                    {['monotoneX', 'natural', 'linear'].map((type) => (
+                        <Button
+                            key={type}
+                            $active={curveType === type}
+                            onClick={() => setCurveType(type as any)}
+                        >
+                            {type}
+                        </Button>
+                    ))}
+                </ButtonGroup>
+                <ButtonGroup>
+                    <Button $active={false} as="div" style={{ cursor: 'default' }}>
+                        Padding: {barPadding.toFixed(1)}
+                    </Button>
+                    <Button $active={false} onClick={() => setBarPadding(Math.max(0, barPadding - 0.1))}>-</Button>
+                    <Button $active={false} onClick={() => setBarPadding(Math.min(0.8, barPadding + 0.1))}>+</Button>
+                </ButtonGroup>
             </Controls>
 
             <div style={{ height: '400px', width: '100%', background: theme === 'dark' ? '#0f172a' : '#ffffff', borderRadius: '8px', padding: '1rem', transition: 'background 0.3s' }}>
@@ -139,6 +173,9 @@ const DistributionChartExample = () => {
                     xAxisLabel={category === 'length_histogram' ? 'LENGTH (MM)' : 'WIDTH (MM)'}
                     primaryColor="#3b82f6"
                     maxXTicks={10}
+                    gridLines={gridLines}
+                    curveType={curveType}
+                    barPadding={barPadding}
                 />
             </div>
         </PlaygroundCard>
