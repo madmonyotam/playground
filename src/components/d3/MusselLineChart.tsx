@@ -46,20 +46,29 @@ interface MusselLineChartProps {
     className?: string;
     selectedLineId?: string | null;
     onLineSelect?: (lineId: string) => void;
+    colors?: {
+        healthy?: string;
+        parasite?: string;
+        text?: string;
+        label?: string;
+        selected?: string;
+    };
 }
 
 const MusselLineChart: React.FC<MusselLineChartProps> = ({
     data,
     className,
     selectedLineId,
-    onLineSelect
+    onLineSelect,
+    colors: userColors
 }) => {
     // Theme colors
     const colors = {
-        healthy: '#00cc88', // Green
-        parasite: '#3366cc', // Blue
-        text: '#00e5ff',     // Cyan-ish text
-        label: '#8899a6'     // Subdued label
+        healthy: userColors?.healthy || '#00cc88', // Green
+        parasite: userColors?.parasite || '#3366cc', // Blue
+        text: userColors?.text || '#00e5ff',     // Cyan-ish text
+        label: userColors?.label || '#8899a6',     // Subdued label
+        selected: userColors?.selected || '#00e5ff' // Default to text color (cyan)
     };
 
     const drawChart = (
@@ -166,7 +175,8 @@ const MusselLineChart: React.FC<MusselLineChartProps> = ({
             .attr('y', d => y(d[1]))
             .attr('height', d => y(d[0]) - y(d[1]))
             .attr('width', x.bandwidth())
-            .attr('stroke', d => d.data.line_id === selectedLineId ? colors.text : 'none')
+            .attr('width', x.bandwidth())
+            .attr('stroke', d => d.data.line_id === selectedLineId ? colors.selected : 'none')
             .attr('stroke-width', d => d.data.line_id === selectedLineId ? 1 : 0)
             .style('filter', d => d.data.line_id === selectedLineId ? 'brightness(1.5)' : null)
             .style('cursor', 'pointer')
