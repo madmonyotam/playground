@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import BarChartExample from '@/components/d3/BarChartExample';
 import CircleChartExample from '@/components/d3/CircleChartExample';
 import DistributionChartExample from '@/components/d3/DistributionChartExample';
+import MusselLineExample from '@/components/d3/MusselLineExample';
 
 // Helper types for the examples map
 type ExampleComponent = React.FC;
@@ -27,6 +28,10 @@ const EXAMPLES: Record<string, ExampleDefinition> = {
   distribution: {
     label: 'Distribution Chart',
     component: DistributionChartExample,
+  },
+  mussel: {
+    label: 'Mussel Line Monitor',
+    component: MusselLineExample,
   },
 };
 
