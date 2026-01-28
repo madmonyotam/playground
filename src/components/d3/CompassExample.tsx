@@ -5,7 +5,15 @@ import styled from 'styled-components';
 import Compass from './Compass';
 import PlaygroundCard from './PlaygroundCard';
 import { PortalToPanel } from '@/components/layout/PortalToPanel';
-import { PropertiesPanel } from '@/components/layout/PropertiesPanel';
+
+import {
+    ControlsContainer,
+    ControlSection,
+    RangeControl,
+    ToggleControl,
+    ColorControl,
+    ControlButton
+} from './controls/ControlWidgets';
 
 const ExampleContainer = styled.div<{ $height: number }>`
   width: 100%;
@@ -16,59 +24,6 @@ const ExampleContainer = styled.div<{ $height: number }>`
   background-color: #000000ff; /* Light background for contrast */
   position: relative;
   transition: height 0.3s ease;
-`;
-
-
-const ControlsContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const ControlGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  
-  label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 500;
-  }
-  
-  input[type="range"] {
-    width: 100%;
-  }
-`;
-
-const Toggle = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  
-  input {
-    cursor: pointer;
-  }
-  
-  span {
-    font-size: 0.9rem;
-    color: #333;
-  }
-`;
-
-const Button = styled.button`
-    padding: 0.5rem 1rem;
-    background-color: #007AFF;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    
-    &:hover {
-        background-color: #0056b3;
-    }
 `;
 
 const CompassExample = () => {
@@ -98,97 +53,75 @@ const CompassExample = () => {
 
             <PortalToPanel>
                 <ControlsContainer>
-                    <ControlGroup>
-                        <label>Container Size: {containerHeight}px</label>
-                        <input
-                            type="range"
-                            min="300"
-                            max="800"
-                            step="10"
-                            value={containerHeight}
-                            onChange={(e) => setContainerHeight(Number(e.target.value))}
-                        />
-                    </ControlGroup>
+                    <RangeControl
+                        label="Container Size"
+                        value={containerHeight}
+                        onChange={setContainerHeight}
+                        min={300}
+                        max={800}
+                        step={10}
+                        unit="px"
+                    />
 
-                    <ControlGroup>
-                        <label>Heading: {Math.round(heading)}°</label>
-                        <input
-                            type="range"
-                            min="0"
-                            max="360"
+                    <ControlSection>
+                        <RangeControl
+                            label="Heading"
                             value={Math.round(heading)}
-                            onChange={(e) => setHeading(Number(e.target.value))}
+                            onChange={setHeading}
+                            min={0}
+                            max={360}
+                            unit="°"
                         />
                         <div style={{ display: 'flex', gap: '5px' }}>
-                            <Button onClick={() => setHeading(0)}>N</Button>
-                            <Button onClick={() => setHeading(90)}>E</Button>
-                            <Button onClick={() => setHeading(180)}>S</Button>
-                            <Button onClick={() => setHeading(270)}>W</Button>
+                            <ControlButton $active={heading === 0} onClick={() => setHeading(0)}>N</ControlButton>
+                            <ControlButton $active={heading === 90} onClick={() => setHeading(90)}>E</ControlButton>
+                            <ControlButton $active={heading === 180} onClick={() => setHeading(180)}>S</ControlButton>
+                            <ControlButton $active={heading === 270} onClick={() => setHeading(270)}>W</ControlButton>
                         </div>
-                    </ControlGroup>
+                    </ControlSection>
 
-                    <ControlGroup>
-                        <Toggle>
-                            <input
-                                type="checkbox"
-                                checked={animate}
-                                onChange={(e) => setAnimate(e.target.checked)}
-                            />
-                            <span>Animate Transitions</span>
-                        </Toggle>
-                    </ControlGroup>
+                    <ToggleControl
+                        label="Animate Transitions"
+                        checked={animate}
+                        onChange={setAnimate}
+                    />
 
-                    <ControlGroup>
-                        <Toggle>
-                            <input
-                                type="checkbox"
-                                checked={showTicks}
-                                onChange={(e) => setShowTicks(e.target.checked)}
-                            />
-                            <span>Show Ticks</span>
-                        </Toggle>
-                    </ControlGroup>
+                    <ToggleControl
+                        label="Show Ticks"
+                        checked={showTicks}
+                        onChange={setShowTicks}
+                    />
 
-                    <ControlGroup>
-                        <label>Tick Size: {tickLength}px</label>
-                        <input
-                            type="range"
-                            min="2"
-                            max="30"
-                            value={tickLength}
-                            onChange={(e) => setTickLength(Number(e.target.value))}
-                        />
-                    </ControlGroup>
+                    <RangeControl
+                        label="Tick Size"
+                        value={tickLength}
+                        onChange={setTickLength}
+                        min={2}
+                        max={30}
+                        unit="px"
+                    />
 
-                    <ControlGroup>
-                        <label>Duration: {duration}ms</label>
-                        <input
-                            type="range"
-                            min="100"
-                            max="2000"
-                            step="100"
-                            value={duration}
-                            onChange={(e) => setDuration(Number(e.target.value))}
-                        />
-                    </ControlGroup>
+                    <RangeControl
+                        label="Duration"
+                        value={duration}
+                        onChange={setDuration}
+                        min={100}
+                        max={2000}
+                        step={100}
+                        unit="ms"
+                    />
 
-                    <ControlGroup>
-                        <label>Primary Color</label>
-                        <input
-                            type="color"
-                            value={primaryColor}
-                            onChange={(e) => setPrimaryColor(e.target.value)}
-                        />
-                    </ControlGroup>
+                    <ColorControl
+                        label="Primary Color"
+                        value={primaryColor}
+                        onChange={setPrimaryColor}
+                    />
 
-                    <ControlGroup>
-                        <label>Shadow Color</label>
-                        <input
-                            type="color"
-                            value={shadowColor}
-                            onChange={(e) => setShadowColor(e.target.value)}
-                        />
-                    </ControlGroup>
+                    <ColorControl
+                        label="Shadow Color"
+                        value={shadowColor}
+                        onChange={setShadowColor}
+                    />
 
                 </ControlsContainer>
             </PortalToPanel>

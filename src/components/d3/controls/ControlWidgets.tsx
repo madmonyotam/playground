@@ -53,3 +53,100 @@ export const ControlButton = styled.button<{ $active: boolean }>`
     background: ${({ $active, theme }) => $active ? theme.colors.primary : `${theme.colors.text.accent}15`};
   }
 `;
+
+// Reusable Widgets
+
+interface RangeControlProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  unit?: string;
+}
+
+const RangeInput = styled.input`
+  width: 100%;
+  accent-color: ${({ theme }) => theme.colors.primary};
+`;
+
+export const RangeControl = ({ label, value, onChange, min, max, step = 1, unit = '' }: RangeControlProps) => (
+  <ControlSection>
+    <Label>{label}: {value}{unit}</Label>
+    <RangeInput
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  </ControlSection>
+);
+
+interface ToggleControlProps {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+const ToggleLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  
+  span {
+    font-size: 0.9rem;
+    color: ${({ theme }) => theme.colors.text.primary};
+    font-family: ${({ theme }) => theme.typography.fontFamily.body};
+  }
+  
+    input {
+        accent-color: ${({ theme }) => theme.colors.primary};
+        width: 1rem;
+        height: 1rem;
+    }
+`;
+
+export const ToggleControl = ({ label, checked, onChange }: ToggleControlProps) => (
+  <ControlSection>
+    <ToggleLabel>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>{label}</span>
+    </ToggleLabel>
+  </ControlSection>
+);
+
+interface ColorControlProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const ColorInput = styled.input`
+    width: 60px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid ${({ theme }) => theme.colors.border};
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+`;
+
+export const ColorControl = ({ label, value, onChange }: ColorControlProps) => (
+  <ControlSection>
+    <Label>{label}</Label>
+    <ColorInput
+      type="color"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  </ControlSection>
+);
+
