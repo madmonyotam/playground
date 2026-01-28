@@ -20,10 +20,10 @@ const defaultConfig: AppConfig = {
     },
     tier: 'FREE',
     theme: {
-        primaryColor: '#e74c3c', // Default generic red
+        primaryColor: '#3366cc', // Matches dark mode accent
         secondaryColor: '#2c3e50',
     },
-    mode: 'light',
+    mode: 'dark',
     useMockData: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true',
     language: 'en',
 };
@@ -31,7 +31,7 @@ const defaultConfig: AppConfig = {
 // Simple singleton for now, could fetch from remote later
 class ConfigService {
     private config: AppConfig;
-    private STORAGE_KEY = 'app_config_v1';
+    private STORAGE_KEY = 'app_config_v2';
 
     constructor() {
         this.config = { ...defaultConfig };

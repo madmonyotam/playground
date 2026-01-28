@@ -1,38 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import DistributionChart from './DistributionChart';
 import PlaygroundCard from './PlaygroundCard';
-
-const Controls = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  align-items: center;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 4px;
-  overflow: hidden;
-`;
-
-const Button = styled.button<{ $active: boolean }>`
-  background: ${({ $active, theme }) => $active ? theme.colors.primary : 'transparent'};
-  color: ${({ $active, theme }) => $active ? theme.colors.text.inverse : theme.colors.text.primary};
-  border: none;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-
-  &:hover {
-    background: ${({ $active, theme }) => $active ? theme.colors.primary : theme.colors.secondary};
-  }
-`;
+import { PortalToPanel } from '@/components/layout/PortalToPanel';
+import {
+    ControlsContainer,
+    ControlSection,
+    Label,
+    ButtonGroup,
+    ControlButton
+} from './controls/ControlWidgets';
 
 const mockData = {
     length_histogram: {
@@ -88,97 +66,114 @@ const DistributionChartExample = () => {
     const binSizeKey = `bin_size_${binSize}`;
 
     return (
-        <PlaygroundCard title="Distribution Chart">
-            <Controls style={{ flexWrap: 'wrap' }}>
-                <ButtonGroup>
-                    <Button
-                        $active={category === 'length_histogram'}
-                        onClick={() => setCategory('length_histogram')}
-                    >
-                        Length
-                    </Button>
-                    <Button
-                        $active={category === 'width_histogram'}
-                        onClick={() => setCategory('width_histogram')}
-                    >
-                        Width
-                    </Button>
-                </ButtonGroup>
+        <>
+            <PortalToPanel>
+                <ControlsContainer>
+                    <ControlSection>
+                        <Label>Metric</Label>
+                        <ButtonGroup>
+                            <ControlButton
+                                $active={category === 'length_histogram'}
+                                onClick={() => setCategory('length_histogram')}
+                            >
+                                Length
+                            </ControlButton>
+                            <ControlButton
+                                $active={category === 'width_histogram'}
+                                onClick={() => setCategory('width_histogram')}
+                            >
+                                Width
+                            </ControlButton>
+                        </ButtonGroup>
+                    </ControlSection>
 
-                <ButtonGroup>
-                    {['5mm', '10mm', '20mm'].map(size => (
-                        <Button
-                            key={size}
-                            $active={binSize === size}
-                            onClick={() => setBinSize(size)}
-                        >
-                            {size}
-                        </Button>
-                    ))}
-                </ButtonGroup>
+                    <ControlSection>
+                        <Label>Bin Size</Label>
+                        <ButtonGroup>
+                            {['5mm', '10mm', '20mm'].map(size => (
+                                <ControlButton
+                                    key={size}
+                                    $active={binSize === size}
+                                    onClick={() => setBinSize(size)}
+                                >
+                                    {size}
+                                </ControlButton>
+                            ))}
+                        </ButtonGroup>
+                    </ControlSection>
 
-                <ButtonGroup>
-                    <Button
-                        $active={theme === 'dark'}
-                        onClick={() => setTheme('dark')}
-                    >
-                        Dark
-                    </Button>
-                    <Button
-                        $active={theme === 'light'}
-                        onClick={() => setTheme('light')}
-                    >
-                        Light
-                    </Button>
-                </ButtonGroup>
+                    <ControlSection>
+                        <Label>Theme Preview</Label>
+                        <ButtonGroup>
+                            <ControlButton
+                                $active={theme === 'dark'}
+                                onClick={() => setTheme('dark')}
+                            >
+                                Dark
+                            </ControlButton>
+                            <ControlButton
+                                $active={theme === 'light'}
+                                onClick={() => setTheme('light')}
+                            >
+                                Light
+                            </ControlButton>
+                        </ButtonGroup>
+                    </ControlSection>
 
-                <ButtonGroup>
-                    <Button
-                        $active={gridLines}
-                        onClick={() => setGridLines(!gridLines)}
-                    >
-                        Grid: {gridLines ? 'On' : 'Off'}
-                    </Button>
-                </ButtonGroup>
+                    <ControlSection>
+                        <Label>Options</Label>
+                        <ButtonGroup>
+                            <ControlButton
+                                $active={gridLines}
+                                onClick={() => setGridLines(!gridLines)}
+                            >
+                                Grid: {gridLines ? 'On' : 'Off'}
+                            </ControlButton>
+                        </ButtonGroup>
+                    </ControlSection>
 
-                <ButtonGroup>
-                    <Button $active={false} as="div" style={{ cursor: 'default' }}>
-                        Curve:
-                    </Button>
-                    {['monotoneX', 'natural', 'linear'].map((type) => (
-                        <Button
-                            key={type}
-                            $active={curveType === type}
-                            onClick={() => setCurveType(type as any)}
-                        >
-                            {type}
-                        </Button>
-                    ))}
-                </ButtonGroup>
-                <ButtonGroup>
-                    <Button $active={false} as="div" style={{ cursor: 'default' }}>
-                        Padding: {barPadding.toFixed(1)}
-                    </Button>
-                    <Button $active={false} onClick={() => setBarPadding(Math.max(0, barPadding - 0.1))}>-</Button>
-                    <Button $active={false} onClick={() => setBarPadding(Math.min(0.8, barPadding + 0.1))}>+</Button>
-                </ButtonGroup>
-            </Controls>
+                    <ControlSection>
+                        <Label>Interpolation</Label>
+                        <ButtonGroup>
+                            {['monotoneX', 'natural', 'linear'].map((type) => (
+                                <ControlButton
+                                    key={type}
+                                    $active={curveType === type}
+                                    onClick={() => setCurveType(type as any)}
+                                >
+                                    {type}
+                                </ControlButton>
+                            ))}
+                        </ButtonGroup>
+                    </ControlSection>
 
-            <div style={{ height: '400px', width: '100%', background: theme === 'dark' ? '#0f172a' : '#ffffff', borderRadius: '8px', padding: '1rem', transition: 'background 0.3s' }}>
-                <DistributionChart
-                    dataSource={mockData}
-                    category={category}
-                    binSizeKey={binSizeKey}
-                    theme={theme}
-                    xAxisLabel={category === 'length_histogram' ? 'LENGTH (MM)' : 'WIDTH (MM)'}
-                    primaryColor="#3b82f6"
-                    maxXTicks={10}
-                    gridLines={gridLines}
-                    curveType={curveType}
-                    barPadding={barPadding}
-                />
-            </div>
-        </PlaygroundCard>
+                    <ControlSection>
+                        <Label>Bar Padding: {barPadding.toFixed(1)}</Label>
+                        <ButtonGroup>
+                            <ControlButton $active={false} onClick={() => setBarPadding(Math.max(0, barPadding - 0.1))}>-</ControlButton>
+                            <ControlButton $active={false} onClick={() => setBarPadding(Math.min(0.8, barPadding + 0.1))}>+</ControlButton>
+                        </ButtonGroup>
+                    </ControlSection>
+                </ControlsContainer>
+            </PortalToPanel>
+
+            <PlaygroundCard title="Distribution Chart">
+                <div style={{ height: '400px', width: '100%', backgroundColor: theme === 'dark' ? '#0b1221' : '#fff' }}>
+                    <DistributionChart
+                        dataSource={mockData}
+                        category={category}
+                        binSizeKey={binSizeKey}
+                        theme={theme}
+                        xAxisLabel={category === 'length_histogram' ? 'LENGTH (MM)' : 'WIDTH (MM)'}
+                        primaryColor="#3b82f6"
+                        maxXTicks={10}
+                        gridLines={gridLines}
+                        curveType={curveType}
+                        barPadding={barPadding}
+                    />
+                </div>
+            </PlaygroundCard>
+        </>
     );
 };
 

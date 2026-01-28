@@ -12,7 +12,8 @@ export function Header() {
   return (
     <HeaderContainer>
       <Logo href="/">
-        Playground
+        D3 React Playground
+
       </Logo>
       <Nav>
         <NavLink href="/playground/d3">Playground</NavLink>

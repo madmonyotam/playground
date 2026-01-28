@@ -48,18 +48,19 @@ export const darkTheme = {
     ...lightTheme,
     colors: {
         ...lightTheme.colors,
-        background: '#1A1C1E', // Warm Charcoal
-        surface: '#25282B', // Lighter Charcoal
+        background: '#0b1221', // Deep Navy from screenshot
+        primary: '#3366cc', // Matches text.accent
+        surface: '#111a2f', // Slightly lighter navy for cards/sidebars
         text: {
-            primary: '#ECE0D8', // Oatmeal
-            secondary: '#B0A8A0', // Muted Oatmeal
-            accent: '#D96C4A',
-            inverse: '#2C2420',
+            primary: '#e0e6ed', // High contrast white-ish
+            secondary: '#94a3b8', // Muted blue-grey
+            accent: '#3366cc', // Bright Blue
+            inverse: '#0b1221',
         },
-        border: 'rgba(255, 255, 255, 0.05)',
+        border: 'rgba(51, 102, 204, 0.2)', // Subtle blue border
         shadows: {
             ...lightTheme.shadows,
-            card: 'none', // Dark mode uses borders/glows rarely, or just flat surfaces
+            card: '0 4px 20px rgba(0, 0, 0, 0.4)',
         }
     },
     shadows: {

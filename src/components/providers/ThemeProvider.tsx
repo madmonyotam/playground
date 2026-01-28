@@ -7,7 +7,7 @@ import { lightTheme, darkTheme } from '@/theme/theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // TODO: Add persistence or system preference detection
-    const [isDark, setIsDark] = useState(false);
+    const [isDark, setIsDark] = useState(true);
 
     const theme = isDark ? darkTheme : lightTheme;
 

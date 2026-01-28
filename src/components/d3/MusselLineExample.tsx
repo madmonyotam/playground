@@ -1,22 +1,32 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import MusselLineChart, { ScanData } from './MusselLineChart';
 import PlaygroundCard from './PlaygroundCard';
+import { PortalToPanel } from '../layout/PortalToPanel';
+import {
+    ControlsContainer,
+    ControlSection,
+    Label,
+    ButtonGroup,
+    ControlButton
+} from './controls/ControlWidgets';
 
-const Container = styled.div`
+// Wrapper to add the specific grid background and layout for this chart within the PlaygroundCard
+// We replace the outer "Container" with this inner specific wrapper.
+const ChartWrapper = styled.div`
   width: 100%;
-  height: 400px;
-  background-color: #0b1221; /* Dark background as in screenshot */
-  padding: 1rem;
-  border-radius: 8px;
-`;
-
-const ChartTitle = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #fff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  
+  /* Grid pattern overlay specific to this chart example */
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
 `;
 
 const Legend = styled.div`
@@ -24,7 +34,7 @@ const Legend = styled.div`
   justify-content: center;
   gap: 2rem;
   margin-top: 1rem;
-  color: #fff;
+  color: ${({ theme }) => theme.colors.text.primary};
   font-size: 0.8rem;
 `;
 
@@ -42,29 +52,95 @@ const LegendItem = styled.div<{ color: string }>`
   }
 `;
 
+type ColorTheme = {
+    name: string;
+    colors: {
+        healthy: string;
+        parasite: string;
+    }
+};
+
+const THEMES: ColorTheme[] = [
+    { name: 'Default', colors: { healthy: '#00cc88', parasite: '#3366cc' } },
+    { name: 'Sunset', colors: { healthy: '#f59e0b', parasite: '#ef4444' } },
+    { name: 'Ocean', colors: { healthy: '#06b6d4', parasite: '#3b82f6' } },
+];
+
 const MusselLineExample = () => {
-    const data = useMemo(() => generateMockData(6), []); // Max 10 bars constraint
-    const [selectedId, setSelectedId] = React.useState<string | null>(null);
+    const [regenerateCount, setRegenerateCount] = useState(0);
+    const data = useMemo(() => generateMockData(8), [regenerateCount]);
+
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [activeTheme, setActiveTheme] = useState<ColorTheme>(THEMES[0]);
 
     return (
-        <PlaygroundCard title="Mussel Line Monitoring">
-            <Container>
-                <ChartTitle>
-                    {/* Could put global stats here if needed */}
-                </ChartTitle>
-                <div style={{ height: '300px' }}>
-                    <MusselLineChart
-                        data={data}
-                        selectedLineId={selectedId}
-                        onLineSelect={setSelectedId}
-                    />
-                </div>
-                <Legend>
-                    <LegendItem color="#00cc88">HEALTHY MUSSELS</LegendItem>
-                    <LegendItem color="#3366cc">PARASITE LEVELS</LegendItem>
-                </Legend>
-            </Container>
-        </PlaygroundCard>
+        <>
+            <PortalToPanel>
+                <ControlsContainer>
+                    <ControlSection>
+                        <Label>Data Options</Label>
+                        <ButtonGroup>
+                            <ControlButton
+                                $active={false}
+                                onClick={() => setRegenerateCount(c => c + 1)}
+                            >
+                                Regenerate Data
+                            </ControlButton>
+                        </ButtonGroup>
+                    </ControlSection>
+
+                    <ControlSection>
+                        <Label>Color Palette</Label>
+                        <ButtonGroup>
+                            {THEMES.map(theme => (
+                                <ControlButton
+                                    key={theme.name}
+                                    $active={activeTheme.name === theme.name}
+                                    onClick={() => setActiveTheme(theme)}
+                                >
+                                    {theme.name}
+                                </ControlButton>
+                            ))}
+                        </ButtonGroup>
+                    </ControlSection>
+
+                    <ControlSection>
+                        <Label>Selection</Label>
+                        <div style={{ fontSize: '0.85rem', color: '#94a3b8', padding: '0.5rem 0' }}>
+                            {selectedId ? `Selected: ${selectedId}` : 'No line selected (Click a bar)'}
+                        </div>
+                        {selectedId && (
+                            <ButtonGroup>
+                                <ControlButton
+                                    $active={false}
+                                    onClick={() => setSelectedId(null)}
+                                >
+                                    Clear Selection
+                                </ControlButton>
+                            </ButtonGroup>
+                        )}
+                    </ControlSection>
+                </ControlsContainer>
+            </PortalToPanel>
+
+            {/* Main Content Area */}
+            <div style={{ height: '100%', width: '100%' }}>
+                <PlaygroundCard title="Mussel Line Performance">
+                    <ChartWrapper>
+                        <MusselLineChart
+                            data={data}
+                            selectedLineId={selectedId}
+                            onLineSelect={setSelectedId}
+                            colors={activeTheme.colors}
+                        />
+                        <Legend>
+                            <LegendItem color={activeTheme.colors.healthy}>HEALTHY MUSSELS</LegendItem>
+                            <LegendItem color={activeTheme.colors.parasite}>PARASITE LEVELS</LegendItem>
+                        </Legend>
+                    </ChartWrapper>
+                </PlaygroundCard>
+            </div>
+        </>
     );
 };
 

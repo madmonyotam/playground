@@ -5,7 +5,7 @@ import styled from 'styled-components';
 
 const CardContainer = styled.div<{ $height?: string | number }>`
   width: 100%;
-  height: ${({ $height }) => (typeof $height === 'number' ? `${$height}px` : $height || '500px')};
+  height: ${({ $height }) => (typeof $height === 'number' ? `${$height}px` : $height || '100%')};
   border: 1px solid ${({ theme }) => theme.colors.border || '#eee'};
   border-radius: ${({ theme }) => theme.borderRadius?.sm || '8px'};
   background-color: ${({ theme }) => theme.colors.surface || '#fff'};
@@ -48,22 +48,22 @@ const ContentWrapper = styled.div`
 `;
 
 interface PlaygroundCardProps {
-    title: string;
-    children: React.ReactNode;
-    height?: string | number;
+  title: string;
+  children: React.ReactNode;
+  height?: string | number;
 }
 
 const PlaygroundCard: React.FC<PlaygroundCardProps> = ({ title, children, height }) => {
-    return (
-        <CardContainer $height={height}>
-            <TitleHeader>
-                <TitleText>{title}</TitleText>
-            </TitleHeader>
-            <ContentWrapper>
-                {children}
-            </ContentWrapper>
-        </CardContainer>
-    );
+  return (
+    <CardContainer $height={height}>
+      <TitleHeader>
+        <TitleText>{title}</TitleText>
+      </TitleHeader>
+      <ContentWrapper>
+        {children}
+      </ContentWrapper>
+    </CardContainer>
+  );
 };
 
 export default PlaygroundCard;
