@@ -13,12 +13,9 @@ const ExampleContainer = styled.div<{ $height: number }>`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f5f7fa; /* Light background for contrast */
+  background-color: #000000ff; /* Light background for contrast */
   position: relative;
   transition: height 0.3s ease;
-  
-  /* Frosted glass bg simulation */
-  background: radial-gradient(circle at center, #e6f7ff 0%, #f0f4f8 100%);
 `;
 
 

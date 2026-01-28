@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import styled from 'styled-components';
 import BaseChart from './BaseChart';
@@ -85,21 +85,6 @@ const drawBasePlate = (
         .attr('stroke', primaryColor)
         .attr('stroke-width', 1)
         .attr('stroke-opacity', 0.3);
-
-    // Crosshairs helper
-    const drawCrosshair = (x1: number, y1: number, x2: number, y2: number) => {
-        baseGroup.append('line')
-            .attr('x1', x1).attr('y1', y1)
-            .attr('x2', x2).attr('y2', y2)
-            .attr('stroke', '#fff')
-            .attr('stroke-width', 1)
-            .attr('stroke-opacity', 0.5);
-    };
-
-    drawCrosshair(-radius * 0.8, 0, -centerHubRadius * 1.2, 0);
-    drawCrosshair(centerHubRadius * 1.2, 0, radius * 0.8, 0);
-    drawCrosshair(0, -radius * 0.8, 0, -centerHubRadius * 1.2);
-    drawCrosshair(0, centerHubRadius * 1.2, 0, radius * 0.8);
 
     return baseGroup;
 };
