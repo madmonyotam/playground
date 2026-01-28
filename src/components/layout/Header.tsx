@@ -12,12 +12,10 @@ export function Header() {
   return (
     <HeaderContainer>
       <Logo href="/">
-        🍳 Family Cookbook
+        Playground
       </Logo>
       <Nav>
-        <NavLink href="/">{t('nav.home')}</NavLink>
-        <NavLink href="/recipes">{t('nav.recipes')}</NavLink>
-        <NavLink href="/create">{t('nav.addRecipe')}</NavLink>
+        <NavLink href="/playground/d3">Playground</NavLink>
         <NavLink href="/settings">{t('nav.settings')}</NavLink>
       </Nav>
       <MenuButton variant="ghost" onClick={toggleSidebar}>☰</MenuButton>
