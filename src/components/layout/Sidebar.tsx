@@ -101,7 +101,6 @@ export const Sidebar = () => {
 
       <NavSection>
         <SectionTitle>D3 Examples</SectionTitle>
-        <NavItemLink href="/playground/d3/bar-chart" $active={isActive('/playground/d3/bar-chart')}>Bar Chart</NavItemLink>
         <NavItemLink href="/playground/d3/circle-chart" $active={isActive('/playground/d3/circle-chart')}>Circle Chart</NavItemLink>
         <NavItemLink href="/playground/d3/distribution" $active={isActive('/playground/d3/distribution')}>Distribution Chart</NavItemLink>
         <NavItemLink href="/playground/d3" $active={isActive('/playground/d3')}>Mussel Line Monitor</NavItemLink>
