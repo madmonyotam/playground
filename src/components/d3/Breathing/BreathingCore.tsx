@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 import * as d3 from 'd3';
 import styled from 'styled-components';
 import BaseChart from '../BaseChart';
+import { BreathingAudio } from './BreathingAudio';
 
 // --- Styled Components ---
 
@@ -53,8 +54,6 @@ const CounterText = styled.div<{ $textColor?: string; $hue: number }>`
   text-shadow: 0 0 15px ${({ $hue }) => `hsl(${$hue}, 80%, 40%)`};
   transition: color 0.3s ease, text-shadow 0.3s ease;
 `;
-//...
-
 
 // --- Types ---
 
@@ -70,15 +69,21 @@ export interface BreathingComponentProps {
     stageDurations: StageDurations;
     counter: {
         mode: 'timer' | 'breaths' | 'off';
-        currentValue?: number; // Kept for backward compat if needed, but we calculate internally now
+        currentValue?: number;
     };
     theme?: {
-        primaryHue: number; // 0-360
+        primaryHue: number;
         textColor?: string;
     };
     particleConfig?: {
         size?: number;
         lifetime?: number;
+    };
+    audioConfig?: {
+        enabled: boolean;
+        volume: number;
+        isMuted: boolean;
+        breathVolume?: number;
     };
 }
 
@@ -126,7 +131,6 @@ const getDisplayText = (
     currentValue?: number
 ) => {
     if (mode === 'timer') {
-        // Count down seconds in current stage (like "now")
         let dur = 0;
         let currentT = 0;
         if (stage === 'inhale') { dur = stageDurations.inhale; currentT = tCycle; }
@@ -137,8 +141,6 @@ const getDisplayText = (
         return Math.ceil((dur - currentT) / 1000).toString();
     } else if (mode === 'breaths') {
         const cycleTime = stageDurations.inhale + stageDurations.holdFull + stageDurations.exhale + stageDurations.holdEmpty;
-        // Count completed cycles. "return to start is one count"
-        // Starting at 0? User said "return to start is ONE count". If it starts at 0, then after one cycle it's 1.
         return Math.floor(elapsed / cycleTime).toString();
     }
     return '';
@@ -148,7 +150,6 @@ const setupDefs = (g: d3.Selection<SVGGElement, unknown, null, undefined>) => {
     if (g.select('defs').empty()) {
         const defs = g.append('defs');
 
-        // Glow Filter
         const filter = defs.append('filter')
             .attr('id', 'glow')
             .attr('x', '-50%').attr('y', '-50%')
@@ -162,7 +163,6 @@ const setupDefs = (g: d3.Selection<SVGGElement, unknown, null, undefined>) => {
         feMerge.append('feMergeNode').attr('in', 'coloredBlur');
         feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
-        // Placeholders for gradients
         defs.append('radialGradient').attr('id', 'coreGradient');
         defs.append('radialGradient').attr('id', 'particleGradient');
         defs.append('radialGradient').attr('id', 'auraGradient');
@@ -173,20 +173,17 @@ const updateGradients = (g: d3.Selection<SVGGElement, unknown, null, undefined>,
     const defs = g.select('defs');
     if (defs.empty()) return;
 
-    // Core Gradient
     const coreGradient = defs.select('#coreGradient');
     coreGradient.html('');
     coreGradient.append('stop').attr('offset', '0%').attr('stop-color', `hsl(${hue}, 60%, 80%)`).attr('stop-opacity', 0.8);
     coreGradient.append('stop').attr('offset', '40%').attr('stop-color', `hsl(${hue}, 80%, 50%)`).attr('stop-opacity', 0.6);
     coreGradient.append('stop').attr('offset', '100%').attr('stop-color', `hsl(${hue + 40}, 90%, 30%)`).attr('stop-opacity', 0);
 
-    // Particle Gradient
     const particleGradient = defs.select('#particleGradient');
     particleGradient.html('');
     particleGradient.append('stop').attr('offset', '0%').attr('stop-color', '#ffffff').attr('stop-opacity', 1);
     particleGradient.append('stop').attr('offset', '100%').attr('stop-color', `hsl(${hue}, 80%, 60%)`).attr('stop-opacity', 0);
 
-    // Aura Gradient
     const auraGradient = defs.select('#auraGradient');
     auraGradient.html('');
     auraGradient.append('stop').attr('offset', '50%').attr('stop-color', `hsl(${hue - 20}, 50%, 40%)`).attr('stop-opacity', 0.1);
@@ -248,7 +245,7 @@ const drawBlob = (
 };
 
 const drawProgressRing = (
-    mainG: d3.Selection<any, any, any, any>, // mainG returned from drawBlob
+    mainG: d3.Selection<any, any, any, any>,
     radius: number,
     themeHue: number,
     stageProgress: number
@@ -289,7 +286,6 @@ const updateAndDrawParticles = (
     // Emission
     if (stage === 'inhale' && Math.random() < 0.8) {
         const angle = Math.random() * Math.PI * 2;
-        // Start further out (0.55 to 0.65 of minDim) to avoid "appearing too internal"
         const r = minDim * (0.55 + Math.random() * 0.1);
         particles.push({
             id: particleIdCounter.current++,
@@ -318,7 +314,6 @@ const updateAndDrawParticles = (
         let dy = 0;
 
         if (stage === 'inhale') {
-            // Calculate velocity based on position for Inhale
             dx = -p.x * 0.02;
             dy = -p.y * 0.02;
             p.x += dx;
@@ -341,13 +336,11 @@ const updateAndDrawParticles = (
             p.opacity -= 0.005;
         }
 
-        // Store velocity for drawing trails
         p.currentVx = dx;
         p.currentVy = dy;
 
-        // Check boundaries
         const dist = Math.sqrt(p.x * p.x + p.y * p.y);
-        const maxDist = minDim * 0.65; // Extended boundary for new spawn particles
+        const maxDist = minDim * 0.65;
 
         if (p.life <= 0 || (stage === 'inhale' && dist < 20) || dist > maxDist) {
             particles.splice(i, 1);
@@ -359,19 +352,18 @@ const updateAndDrawParticles = (
 
     particleSel.enter().append('line')
         .attr('class', 'particle')
-        .attr('stroke', 'url(#particleGradient)') // Use stroke for line
+        .attr('stroke', 'url(#particleGradient)')
         .attr('stroke-linecap', 'round')
         .merge(particleSel as any)
         .attr('x1', d => d.x)
         .attr('y1', d => d.y)
-        .attr('x2', d => d.x - d.currentVx * 3) // Trail length factor
+        .attr('x2', d => d.x - d.currentVx * 3)
         .attr('y2', d => d.y - d.currentVy * 3)
         .attr('stroke-opacity', d => d.opacity)
-        .attr('stroke-width', pSize * 2); // Width based on size (diameter)
+        .attr('stroke-width', pSize * 2);
 
     particleSel.exit().remove();
 };
-
 
 // --- Component ---
 
@@ -380,7 +372,8 @@ const BreathingCore = ({
     stageDurations,
     counter,
     theme = { primaryHue: 190 },
-    particleConfig = { size: 2, lifetime: 100 }
+    particleConfig = { size: 2, lifetime: 100 },
+    audioConfig = { enabled: false, volume: 0.5, isMuted: false }
 }: BreathingComponentProps) => {
     const timeRef = useRef(0);
     const lastFrameTimeRef = useRef(0);
@@ -406,6 +399,39 @@ const BreathingCore = ({
         phase: 'Inhale',
         displayValue: ''
     });
+
+    const audioRef = useRef<BreathingAudio | null>(null);
+
+    // Init Audio and Load Track
+    useEffect(() => {
+        if (!audioRef.current) {
+            audioRef.current = new BreathingAudio();
+            audioRef.current.load('/audio/meditation_music.mp3');
+        }
+        return () => {
+            audioRef.current?.stop();
+        };
+    }, []);
+
+    // Handle Audio Props
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        audio.setVolume(audioConfig.volume);
+        audio.setMute(audioConfig.isMuted);
+
+        // Pass Golden Number if present
+        if (audioConfig.breathVolume !== undefined) {
+            audio.setBreathVolume(audioConfig.breathVolume);
+        }
+
+        if (audioConfig.enabled && isPlaying) {
+            audio.start();
+        } else {
+            audio.stop();
+        }
+    }, [audioConfig.enabled, audioConfig.volume, audioConfig.isMuted, audioConfig.breathVolume, isPlaying]);
 
     const blobConfig = useMemo(() => ({
         points: 20,
@@ -458,7 +484,7 @@ const BreathingCore = ({
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [isPlaying, stageDurations, theme, drawingContext]);
+    }, [isPlaying, stageDurations, theme, drawingContext, audioConfig.enabled]);
 
     const drawFrame = (elapsed: number) => {
         if (!drawingContext) return;
@@ -470,10 +496,12 @@ const BreathingCore = ({
         const blobMaxGrowth = minDim * 0.15;
         const ringRadius = minDim * 0.42;
 
-        // 1. Cycle State
         const { stage, stageProgress, tCycle } = calculateCycleState(elapsed, cycleTime, stageDurations);
 
-        // 2. HUD
+        if (audioRef.current && audioConfig.enabled) {
+            audioRef.current.update(stage, stageProgress);
+        }
+
         const textVal = getDisplayText(counter.mode, tCycle, elapsed, stage, stageDurations, counter.currentValue);
 
         setHudState(prev => {
@@ -484,14 +512,10 @@ const BreathingCore = ({
             return prev;
         });
 
-        // 3. Draw Blob
         const mainG = drawBlob(g, center, elapsed, stage, stageProgress, blobBaseRadius, blobMaxGrowth, blobConfig);
 
-        // 4. Draw Ring
         drawProgressRing(mainG, ringRadius, theme.primaryHue, stageProgress);
 
-        // 5. Draw Particles
-        // Ensure particleConfig has valid accessors or fallback in the function
         const safeParticleConfig = {
             size: particleConfig.size || 2,
             lifetime: particleConfig.lifetime || 100

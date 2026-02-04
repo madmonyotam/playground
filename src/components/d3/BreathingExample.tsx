@@ -49,7 +49,13 @@ const BreathingExample = () => {
 
     // Particle Settings
     const [particleSize, setParticleSize] = useState(2);
-    const [particleLifetime, setParticleLifetime] = useState(100);
+    const [particleLifetime, setParticleLifetime] = useState(200);
+
+    // Audio Settings
+    const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [volume, setVolume] = useState(0.5);
+    const [breathVolume, setBreathVolume] = useState(1.5); // "Golden Number" default boosted
 
     // Helpers to update durations safely
     const updateDuration = (key: keyof StageDurations, val: number) => {
@@ -81,6 +87,12 @@ const BreathingExample = () => {
                     particleConfig={{
                         size: particleSize,
                         lifetime: particleLifetime
+                    }}
+                    audioConfig={{
+                        enabled: isAudioEnabled,
+                        volume: volume,
+                        isMuted: isMuted,
+                        breathVolume: breathVolume
                     }}
                 />
             </ExampleContainer>
@@ -182,6 +194,37 @@ const BreathingExample = () => {
                     </ControlSection>
 
                     <ControlSection>
+                        <Label>Audio</Label>
+                        <ToggleControl
+                            label="Enable Audio"
+                            checked={isAudioEnabled}
+                            onChange={(val) => {
+                                setIsAudioEnabled(val);
+                                if (val) setIsMuted(false);
+                            }}
+                        />
+                        <div style={{ opacity: isAudioEnabled ? 1 : 0.5, pointerEvents: isAudioEnabled ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+                            <ToggleControl
+                                label={isMuted ? "Muted" : "Sound On"}
+                                checked={!isMuted}
+                                onChange={(val) => setIsMuted(!val)}
+                            />
+                            <RangeControl
+                                label="Master Volume"
+                                value={volume}
+                                onChange={setVolume}
+                                min={0} max={1} step={0.05}
+                            />
+                            <RangeControl
+                                label="Breath SFX Level"
+                                value={breathVolume}
+                                onChange={setBreathVolume}
+                                min={0} max={5} step={0.1}
+                            />
+                        </div>
+                    </ControlSection>
+
+                    <ControlSection>
                         <Label>Particles</Label>
                         <RangeControl
                             label="Size"
@@ -193,7 +236,7 @@ const BreathingExample = () => {
                             label="Lifetime"
                             value={particleLifetime}
                             onChange={setParticleLifetime}
-                            min={20} max={300} step={10}
+                            min={20} max={700} step={10}
                         />
                     </ControlSection>
                 </ControlsContainer>
