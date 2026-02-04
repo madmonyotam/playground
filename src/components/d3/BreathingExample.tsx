@@ -10,7 +10,6 @@ import {
     ControlSection,
     RangeControl,
     ToggleControl,
-    ColorControl,
     Label,
     ButtonGroup,
     ControlButton
@@ -32,13 +31,13 @@ const BreathingExample = () => {
     const [themeHue, setThemeHue] = useState(190); // Teal by default
     const [containerHeight, setContainerHeight] = useState(600);
 
-    // Stage Durations (ms)
-    // Inhale: 4s, Hold: 4s, Exhale: 4s, Hold: 2s (Box breathing variant)
+    // Stage Durations (seconds)
+    // Inhale: 4s, Hold: 2s, Exhale: 4s, Hold: 2s (Box breathing variant)
     const [durations, setDurations] = useState<StageDurations>({
-        inhale: 4000,
-        holdFull: 2000,
-        exhale: 4000,
-        holdEmpty: 2000
+        inhale: 4,
+        holdFull: 2,
+        exhale: 4,
+        holdEmpty: 2
     });
 
     // Counter Settings
@@ -46,9 +45,21 @@ const BreathingExample = () => {
     const [counterMode, setCounterMode] = useState<CounterMode>('seconds-down');
     const [breathCount, setBreathCount] = useState(0);
 
+    // Particle Settings
+    const [particleSize, setParticleSize] = useState(2);
+    const [particleLifetime, setParticleLifetime] = useState(100);
+
     // Helpers to update durations safely
     const updateDuration = (key: keyof StageDurations, val: number) => {
         setDurations((prev: StageDurations) => ({ ...prev, [key]: val }));
+    };
+
+    // Derived durations in MS for the Core component
+    const durationsMs = {
+        inhale: durations.inhale * 1000,
+        holdFull: durations.holdFull * 1000,
+        exhale: durations.exhale * 1000,
+        holdEmpty: durations.holdEmpty * 1000
     };
 
     return (
@@ -56,12 +67,16 @@ const BreathingExample = () => {
             <ExampleContainer $height={containerHeight}>
                 <BreathingCore
                     isPlaying={isPlaying}
-                    stageDurations={durations}
+                    stageDurations={durationsMs}
                     counter={{
                         mode: counterMode,
                         currentValue: breathCount
                     }}
                     theme={{ primaryHue: themeHue }}
+                    particleConfig={{
+                        size: particleSize,
+                        lifetime: particleLifetime
+                    }}
                 />
             </ExampleContainer>
 
@@ -86,10 +101,6 @@ const BreathingExample = () => {
                         />
                         <div style={{ marginTop: '0.5rem' }}>
                             <ControlButton $active={false} onClick={() => {
-                                // Reset logic involves re-mounting or forcing a reset in Core.
-                                // For now, we can toggle play off/on or signal a reset.
-                                // A simple way is to key the component, but that's heavy.
-                                // Passed props change is better.
                                 setIsPlaying(false);
                                 setTimeout(() => setIsPlaying(true), 100);
                             }}>
@@ -99,30 +110,30 @@ const BreathingExample = () => {
                     </ControlSection>
 
                     <ControlSection>
-                        <Label>Cycle Phases (ms)</Label>
+                        <Label>Cycle Phases (seconds)</Label>
                         <RangeControl
                             label="Inhale"
                             value={durations.inhale}
                             onChange={(v: number) => updateDuration('inhale', v)}
-                            min={1000} max={10000} step={500} unit="ms"
+                            min={1} max={10} step={0.5} unit="s"
                         />
                         <RangeControl
                             label="Hold (Full)"
                             value={durations.holdFull}
                             onChange={(v: number) => updateDuration('holdFull', v)}
-                            min={0} max={10000} step={500} unit="ms"
+                            min={0} max={10} step={0.5} unit="s"
                         />
                         <RangeControl
                             label="Exhale"
                             value={durations.exhale}
                             onChange={(v: number) => updateDuration('exhale', v)}
-                            min={1000} max={10000} step={500} unit="ms"
+                            min={1} max={10} step={0.5} unit="s"
                         />
                         <RangeControl
                             label="Hold (Empty)"
                             value={durations.holdEmpty}
                             onChange={(v: number) => updateDuration('holdEmpty', v)}
-                            min={0} max={10000} step={500} unit="ms"
+                            min={0} max={10} step={0.5} unit="s"
                         />
                     </ControlSection>
 
@@ -158,6 +169,22 @@ const BreathingExample = () => {
                                 min={0} max={360} step={5}
                             />
                         </div>
+                    </ControlSection>
+
+                    <ControlSection>
+                        <Label>Particles</Label>
+                        <RangeControl
+                            label="Size"
+                            value={particleSize}
+                            onChange={setParticleSize}
+                            min={1} max={10} step={0.5} unit="px"
+                        />
+                        <RangeControl
+                            label="Lifetime"
+                            value={particleLifetime}
+                            onChange={setParticleLifetime}
+                            min={20} max={300} step={10}
+                        />
                     </ControlSection>
                 </ControlsContainer>
             </PortalToPanel>
