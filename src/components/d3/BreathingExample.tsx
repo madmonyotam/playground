@@ -55,7 +55,15 @@ const BreathingExample = () => {
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(0.5);
-    const [breathVolume, setBreathVolume] = useState(1.5); // "Golden Number" default boosted
+    const [breathVolume, setBreathVolume] = useState(1.5);
+
+    // Track Options
+    const TRACK_OPTIONS = [
+        { label: 'Short Meditation (3m)', value: '/audio/meditation_music.mp3' },
+        { label: 'Deep Focus (Ambient)', value: '/audio/music_2.mp3' },
+        { label: ' Spiritual Flute Music', value: '/audio/music_3.mp3' }
+    ];
+    const [selectedTrack, setSelectedTrack] = useState(TRACK_OPTIONS[0].value);
 
     // Helpers to update durations safely
     const updateDuration = (key: keyof StageDurations, val: number) => {
@@ -92,7 +100,8 @@ const BreathingExample = () => {
                         enabled: isAudioEnabled,
                         volume: volume,
                         isMuted: isMuted,
-                        breathVolume: breathVolume
+                        breathVolume: breathVolume,
+                        trackFile: selectedTrack
                     }}
                 />
             </ExampleContainer>
@@ -204,6 +213,27 @@ const BreathingExample = () => {
                             }}
                         />
                         <div style={{ opacity: isAudioEnabled ? 1 : 0.5, pointerEvents: isAudioEnabled ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+
+                            <div style={{ marginBottom: '12px' }}>
+                                <Label style={{ fontSize: '0.7rem', marginBottom: '4px' }}>Backing Track</Label>
+                                <select
+                                    value={selectedTrack}
+                                    onChange={(e) => setSelectedTrack(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '4px',
+                                        borderRadius: '4px',
+                                        background: '#333',
+                                        color: '#fff',
+                                        border: '1px solid #555'
+                                    }}
+                                >
+                                    {TRACK_OPTIONS.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <ToggleControl
                                 label={isMuted ? "Muted" : "Sound On"}
                                 checked={!isMuted}

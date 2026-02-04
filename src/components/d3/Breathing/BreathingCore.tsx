@@ -84,6 +84,7 @@ export interface BreathingComponentProps {
         volume: number;
         isMuted: boolean;
         breathVolume?: number;
+        trackFile?: string;
     };
 }
 
@@ -402,18 +403,26 @@ const BreathingCore = ({
 
     const audioRef = useRef<BreathingAudio | null>(null);
 
-    // Init Audio and Load Track
+    // 1. Lifecycle management (mount/unmount)
     useEffect(() => {
         if (!audioRef.current) {
             audioRef.current = new BreathingAudio();
-            audioRef.current.load('/audio/meditation_music.mp3');
         }
         return () => {
             audioRef.current?.stop();
         };
-    }, []);
+    }, []); // Only once
 
-    // Handle Audio Props
+    // 2. Track Management
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const track = audioConfig.trackFile || '/audio/meditation_music.mp3';
+        audio.load(track);
+    }, [audioConfig.trackFile]);
+
+    // 3. Playback/Params Management
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -421,7 +430,6 @@ const BreathingCore = ({
         audio.setVolume(audioConfig.volume);
         audio.setMute(audioConfig.isMuted);
 
-        // Pass Golden Number if present
         if (audioConfig.breathVolume !== undefined) {
             audio.setBreathVolume(audioConfig.breathVolume);
         }

@@ -18,17 +18,27 @@ export class BreathingAudio {
     private isMuted = false;
     private volume = 0.5;
     private breathVolumeScalar = 1.0;
+    private _isPlaying = false; // Internal tracking
 
     constructor() { }
 
     async load(url: string) {
+        if (this.trackUrl === url) return;
+
         this.trackUrl = url;
         if (!this.ctx) this.init();
+
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
             if (this.ctx) {
-                this.trackBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+                const newBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+                this.trackBuffer = newBuffer;
+
+                // If we are supposed to be playing, switch now
+                if (this._isPlaying) {
+                    this.playTrack();
+                }
             }
         } catch (e) {
             console.error("Failed to load audio:", e);
@@ -95,6 +105,7 @@ export class BreathingAudio {
     }
 
     start() {
+        this._isPlaying = true;
         if (!this.isInitialized) this.init();
         if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
@@ -118,7 +129,10 @@ export class BreathingAudio {
         if (!this.ctx || !this.trackBuffer) return;
 
         if (this.trackNode) {
-            try { this.trackNode.stop(); } catch (e) { }
+            try {
+                this.trackNode.stop();
+                this.trackNode.disconnect();
+            } catch (e) { }
         }
 
         this.trackNode = this.ctx.createBufferSource();
@@ -132,6 +146,7 @@ export class BreathingAudio {
     }
 
     stop() {
+        this._isPlaying = false;
         if (this.ctx && this.ctx.state === 'running') {
             this.ctx.suspend();
         }
