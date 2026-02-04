@@ -32,22 +32,29 @@ const HUDText = styled.div`
   gap: 1rem;
 `;
 
-const PhaseLabel = styled.div`
+const PhaseLabel = styled.div<{ $textColor?: string; $hue: number }>`
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.8rem;
-  opacity: 0.6;
-  color: #a0a0ff;
+  opacity: 0.9;
+  color: ${({ $textColor, $hue }) => $textColor || `hsl(${$hue}, 100%, 80%)`};
+  text-shadow: 0 0 10px ${({ $hue }) => `hsl(${$hue}, 80%, 40%)`};
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 `;
 
-const CounterText = styled.div`
+const CounterText = styled.div<{ $textColor?: string; $hue: number }>`
   font-size: 4rem;
   font-weight: 200;
   opacity: 0.9;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  color: ${({ $textColor, $hue }) => $textColor || `hsl(${$hue}, 100%, 80%)`};
+  text-shadow: 0 0 15px ${({ $hue }) => `hsl(${$hue}, 80%, 40%)`};
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 `;
+//...
+
 
 // --- Types ---
 
@@ -62,11 +69,12 @@ export interface BreathingComponentProps {
     isPlaying: boolean;
     stageDurations: StageDurations;
     counter: {
-        mode: 'seconds-up' | 'seconds-down' | 'breaths' | 'off';
-        currentValue?: number; // For 'breaths' mode
+        mode: 'timer' | 'breaths' | 'off';
+        currentValue?: number; // Kept for backward compat if needed, but we calculate internally now
     };
     theme?: {
         primaryHue: number; // 0-360
+        textColor?: string;
     };
     particleConfig?: {
         size?: number;
@@ -110,15 +118,15 @@ const calculateCycleState = (elapsed: number, cycleTime: number, stageDurations:
 };
 
 const getDisplayText = (
-    mode: 'seconds-up' | 'seconds-down' | 'breaths' | 'off',
+    mode: 'timer' | 'breaths' | 'off',
     tCycle: number,
+    elapsed: number,
     stage: string,
     stageDurations: StageDurations,
     currentValue?: number
 ) => {
-    if (mode === 'seconds-up') {
-        return Math.floor(tCycle / 1000).toString();
-    } else if (mode === 'seconds-down') {
+    if (mode === 'timer') {
+        // Count down seconds in current stage (like "now")
         let dur = 0;
         let currentT = 0;
         if (stage === 'inhale') { dur = stageDurations.inhale; currentT = tCycle; }
@@ -128,7 +136,10 @@ const getDisplayText = (
 
         return Math.ceil((dur - currentT) / 1000).toString();
     } else if (mode === 'breaths') {
-        return (currentValue || 0).toString();
+        const cycleTime = stageDurations.inhale + stageDurations.holdFull + stageDurations.exhale + stageDurations.holdEmpty;
+        // Count completed cycles. "return to start is one count"
+        // Starting at 0? User said "return to start is ONE count". If it starts at 0, then after one cycle it's 1.
+        return Math.floor(elapsed / cycleTime).toString();
     }
     return '';
 };
@@ -219,11 +230,11 @@ const drawBlob = (
         .curve(d3.curveBasisClosed);
     const pathData = lineGenerator(points);
 
-    let mainG = g.select('g.main-group');
-    if (mainG.empty()) {
-        mainG = g.append('g').attr('class', 'main-group');
-    }
-    mainG.attr('transform', `translate(${center.x},${center.y})`);
+    const mainG = g.selectAll<SVGGElement, unknown>('g.main-group')
+        .data([null])
+        .join('g')
+        .attr('class', 'main-group')
+        .attr('transform', `translate(${center.x},${center.y})`);
 
     const blob = mainG.selectAll<SVGPathElement, string>('path.blob').data([pathData || '']);
     blob.enter().append('path')
@@ -276,9 +287,10 @@ const updateAndDrawParticles = (
     const pSize = particleConfig.size;
 
     // Emission
-    if (stage === 'inhale' && Math.random() < 0.3) {
+    if (stage === 'inhale' && Math.random() < 0.8) {
         const angle = Math.random() * Math.PI * 2;
-        const r = particleCreationDist;
+        // Start further out (0.55 to 0.65 of minDim) to avoid "appearing too internal"
+        const r = minDim * (0.55 + Math.random() * 0.1);
         particles.push({
             id: particleIdCounter.current++,
             x: Math.cos(angle) * r,
@@ -286,15 +298,15 @@ const updateAndDrawParticles = (
             vx: 0, vy: 0,
             life: pLifetime, maxLife: pLifetime, opacity: 0
         });
-    } else if (stage === 'exhale' && Math.random() < 0.2) {
+    } else if (stage === 'exhale' && Math.random() < 0.6) {
         const angle = Math.random() * Math.PI * 2;
         const r = particleEndDist;
         particles.push({
             id: particleIdCounter.current++,
             x: Math.cos(angle) * r,
             y: Math.sin(angle) * r,
-            vx: Math.cos(angle) * 1.5,
-            vy: Math.sin(angle) * 1.5,
+            vx: Math.cos(angle) * 3.0,
+            vy: Math.sin(angle) * 3.0,
             life: pLifetime, maxLife: pLifetime, opacity: 0
         });
     }
@@ -302,27 +314,40 @@ const updateAndDrawParticles = (
     // Update
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
+        let dx = 0;
+        let dy = 0;
 
         if (stage === 'inhale') {
-            p.x += -p.x * 0.025;
-            p.y += -p.y * 0.025;
-            p.life -= 1;
-            p.opacity = Math.min(1, p.opacity + 0.05);
+            // Calculate velocity based on position for Inhale
+            dx = -p.x * 0.02;
+            dy = -p.y * 0.02;
+            p.x += dx;
+            p.y += dy;
+            p.life -= 0.5;
+            p.opacity = Math.min(1, p.opacity + 0.02);
         } else if (stage === 'exhale') {
-            p.x += p.vx;
-            p.y += p.vy;
+            dx = p.vx;
+            dy = p.vy;
+            p.x += dx;
+            p.y += dy;
             p.life -= 1;
             p.opacity = p.life / p.maxLife;
         } else {
-            p.x += (Math.random() - 0.5) * 0.5;
-            p.y += (Math.random() - 0.5) * 0.5;
+            dx = (Math.random() - 0.5) * 0.5;
+            dy = (Math.random() - 0.5) * 0.5;
+            p.x += dx;
+            p.y += dy;
             p.life -= 0.5;
             p.opacity -= 0.005;
         }
 
+        // Store velocity for drawing trails
+        p.currentVx = dx;
+        p.currentVy = dy;
+
         // Check boundaries
         const dist = Math.sqrt(p.x * p.x + p.y * p.y);
-        const maxDist = minDim * 0.42; // ringRadius
+        const maxDist = minDim * 0.65; // Extended boundary for new spawn particles
 
         if (p.life <= 0 || (stage === 'inhale' && dist < 20) || dist > maxDist) {
             particles.splice(i, 1);
@@ -330,17 +355,19 @@ const updateAndDrawParticles = (
     }
 
     // Draw
-    const particleSel = mainG.selectAll('circle.particle').data(particles, (d: any) => d.id);
+    const particleSel = mainG.selectAll('line.particle').data(particles, (d: any) => d.id);
 
-    particleSel.enter().append('circle')
+    particleSel.enter().append('line')
         .attr('class', 'particle')
-        .attr('r', pSize)
-        .attr('fill', 'url(#particleGradient)')
+        .attr('stroke', 'url(#particleGradient)') // Use stroke for line
+        .attr('stroke-linecap', 'round')
         .merge(particleSel as any)
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y)
-        .attr('opacity', d => d.opacity)
-        .attr('r', pSize);
+        .attr('x1', d => d.x)
+        .attr('y1', d => d.y)
+        .attr('x2', d => d.x - d.currentVx * 3) // Trail length factor
+        .attr('y2', d => d.y - d.currentVy * 3)
+        .attr('stroke-opacity', d => d.opacity)
+        .attr('stroke-width', pSize * 2); // Width based on size (diameter)
 
     particleSel.exit().remove();
 };
@@ -447,7 +474,7 @@ const BreathingCore = ({
         const { stage, stageProgress, tCycle } = calculateCycleState(elapsed, cycleTime, stageDurations);
 
         // 2. HUD
-        const textVal = getDisplayText(counter.mode, tCycle, stage, stageDurations, counter.currentValue);
+        const textVal = getDisplayText(counter.mode, tCycle, elapsed, stage, stageDurations, counter.currentValue);
 
         setHudState(prev => {
             const newPhase = stage === 'holdFull' ? 'Hold' : stage === 'holdEmpty' ? 'Hold' : stage.charAt(0).toUpperCase() + stage.slice(1);
@@ -479,9 +506,9 @@ const BreathingCore = ({
                 margin={zeroMargin}
             />
             <HUDText>
-                <PhaseLabel>{hudState.phase}</PhaseLabel>
+                <PhaseLabel $textColor={theme.textColor} $hue={theme.primaryHue}>{hudState.phase}</PhaseLabel>
                 {counter.mode !== 'off' && (
-                    <CounterText>{hudState.displayValue}</CounterText>
+                    <CounterText $textColor={theme.textColor} $hue={theme.primaryHue}>{hudState.displayValue}</CounterText>
                 )}
             </HUDText>
         </Container>

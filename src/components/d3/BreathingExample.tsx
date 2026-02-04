@@ -10,6 +10,7 @@ import {
     ControlSection,
     RangeControl,
     ToggleControl,
+    ColorControl,
     Label,
     ButtonGroup,
     ControlButton
@@ -29,20 +30,21 @@ const BreathingExample = () => {
     // State
     const [isPlaying, setIsPlaying] = useState(true);
     const [themeHue, setThemeHue] = useState(190); // Teal by default
+    const [textColor, setTextColor] = useState('#ffffff');
     const [containerHeight, setContainerHeight] = useState(600);
 
     // Stage Durations (seconds)
     // Inhale: 4s, Hold: 2s, Exhale: 4s, Hold: 2s (Box breathing variant)
     const [durations, setDurations] = useState<StageDurations>({
         inhale: 4,
-        holdFull: 2,
+        holdFull: 4,
         exhale: 4,
-        holdEmpty: 2
+        holdEmpty: 4
     });
 
     // Counter Settings
-    type CounterMode = 'seconds-up' | 'seconds-down' | 'breaths' | 'off';
-    const [counterMode, setCounterMode] = useState<CounterMode>('seconds-down');
+    type CounterMode = 'timer' | 'breaths' | 'off';
+    const [counterMode, setCounterMode] = useState<CounterMode>('timer');
     const [breathCount, setBreathCount] = useState(0);
 
     // Particle Settings
@@ -72,7 +74,10 @@ const BreathingExample = () => {
                         mode: counterMode,
                         currentValue: breathCount
                     }}
-                    theme={{ primaryHue: themeHue }}
+                    theme={{
+                        primaryHue: themeHue,
+                        textColor: textColor
+                    }}
                     particleConfig={{
                         size: particleSize,
                         lifetime: particleLifetime
@@ -142,16 +147,16 @@ const BreathingExample = () => {
                         <Label style={{ fontSize: '0.7rem', marginBottom: '4px' }}>Counter Mode</Label>
                         <ButtonGroup>
                             <ControlButton
-                                $active={counterMode === 'seconds-up'}
-                                onClick={() => setCounterMode('seconds-up')}
+                                $active={counterMode === 'timer'}
+                                onClick={() => setCounterMode('timer')}
                             >
-                                Up
+                                Timer
                             </ControlButton>
                             <ControlButton
-                                $active={counterMode === 'seconds-down'}
-                                onClick={() => setCounterMode('seconds-down')}
+                                $active={counterMode === 'breaths'}
+                                onClick={() => setCounterMode('breaths')}
                             >
-                                Down
+                                Breaths
                             </ControlButton>
                             <ControlButton
                                 $active={counterMode === 'off'}
@@ -161,12 +166,17 @@ const BreathingExample = () => {
                             </ControlButton>
                         </ButtonGroup>
 
-                        <div style={{ marginTop: '1rem' }}>
+                        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <RangeControl
                                 label="Theme Hue"
                                 value={themeHue}
                                 onChange={setThemeHue}
                                 min={0} max={360} step={5}
+                            />
+                            <ColorControl
+                                label="Text Color"
+                                value={textColor}
+                                onChange={setTextColor}
                             />
                         </div>
                     </ControlSection>
