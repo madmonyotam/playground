@@ -83,7 +83,9 @@ export interface BreathingComponentProps {
         enabled: boolean;
         volume: number;
         isMuted: boolean;
+        musicVolume?: number;
         breathVolume?: number;
+        pingVolume?: number;
         trackFile?: string;
     };
 }
@@ -395,6 +397,7 @@ const BreathingCore = ({
 
     const particlesRef = useRef<Array<any>>([]);
     const particleIdCounter = useRef(0);
+    const lastStageRef = useRef<string>('');
 
     const [hudState, setHudState] = React.useState<{ phase: string; displayValue: string }>({
         phase: 'Inhale',
@@ -430,8 +433,16 @@ const BreathingCore = ({
         audio.setVolume(audioConfig.volume);
         audio.setMute(audioConfig.isMuted);
 
+        if (audioConfig.musicVolume !== undefined) {
+            audio.setTrackVolume(audioConfig.musicVolume);
+        }
+
         if (audioConfig.breathVolume !== undefined) {
             audio.setBreathVolume(audioConfig.breathVolume);
+        }
+
+        if (audioConfig.pingVolume !== undefined) {
+            audio.setPingVolume(audioConfig.pingVolume);
         }
 
         if (audioConfig.enabled && isPlaying) {
@@ -439,7 +450,8 @@ const BreathingCore = ({
         } else {
             audio.stop();
         }
-    }, [audioConfig.enabled, audioConfig.volume, audioConfig.isMuted, audioConfig.breathVolume, isPlaying]);
+    }, [audioConfig.enabled, audioConfig.volume, audioConfig.isMuted, audioConfig.musicVolume, audioConfig.breathVolume, audioConfig.pingVolume, isPlaying]);
+
 
     const blobConfig = useMemo(() => ({
         points: 20,
@@ -508,6 +520,12 @@ const BreathingCore = ({
 
         if (audioRef.current && audioConfig.enabled) {
             audioRef.current.update(stage, stageProgress);
+
+            // Detection of stage transition
+            if (stage !== lastStageRef.current) {
+                audioRef.current.playPing(stage);
+                lastStageRef.current = stage;
+            }
         }
 
         const textVal = getDisplayText(counter.mode, tCycle, elapsed, stage, stageDurations, counter.currentValue);

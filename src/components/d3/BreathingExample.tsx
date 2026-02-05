@@ -55,7 +55,9 @@ const BreathingExample = () => {
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(0.5);
+    const [musicVolume, setMusicVolume] = useState(0.7);
     const [breathVolume, setBreathVolume] = useState(1.5);
+    const [pingVolume, setPingVolume] = useState(1.0);
 
     // Track Options
     const TRACK_OPTIONS = [
@@ -100,7 +102,9 @@ const BreathingExample = () => {
                         enabled: isAudioEnabled,
                         volume: volume,
                         isMuted: isMuted,
+                        musicVolume: musicVolume,
                         breathVolume: breathVolume,
+                        pingVolume: pingVolume,
                         trackFile: selectedTrack
                     }}
                 />
@@ -240,9 +244,15 @@ const BreathingExample = () => {
                                 onChange={(val) => setIsMuted(!val)}
                             />
                             <RangeControl
-                                label="Master Volume"
+                                label="Overall Volume"
                                 value={volume}
                                 onChange={setVolume}
+                                min={0} max={1} step={0.05}
+                            />
+                            <RangeControl
+                                label="Music Volume"
+                                value={musicVolume}
+                                onChange={setMusicVolume}
                                 min={0} max={1} step={0.05}
                             />
                             <RangeControl
@@ -250,6 +260,12 @@ const BreathingExample = () => {
                                 value={breathVolume}
                                 onChange={setBreathVolume}
                                 min={0} max={5} step={0.1}
+                            />
+                            <RangeControl
+                                label="Chime Cues Level"
+                                value={pingVolume}
+                                onChange={setPingVolume}
+                                min={0} max={3} step={0.1}
                             />
                         </div>
                     </ControlSection>
