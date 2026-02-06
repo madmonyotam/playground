@@ -35,17 +35,17 @@ const HUDText = styled.div`
   gap: 1rem;
 `;
 
-const PhaseLabel = styled.div<{ $textColor?: string; $color: string }>`
+const PhaseLabel = styled.div<{ $textColor?: string; $color: string; $fontSize?: number }>`
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 0.8rem;
+  font-size: ${({ $fontSize }) => $fontSize ? `${$fontSize}px` : '0.8rem'};
   color: ${({ $textColor, $color }) => $textColor || $color};
   text-shadow: 0 0 10px ${({ $color }) => $color};
 `;
 
-const CounterText = styled.div<{ $textColor?: string; $color: string }>`
-  font-size: 4rem;
+const CounterText = styled.div<{ $textColor?: string; $color: string; $fontSize?: number }>`
+  font-size: ${({ $fontSize }) => $fontSize ? `${$fontSize}px` : '4rem'};
   font-weight: 200;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -80,6 +80,7 @@ export interface BreathingComponentProps {
         size?: number;
         lifetime?: number;
         count?: number;
+        showTravelers?: boolean;
     };
     audioConfig?: {
         enabled: boolean;
@@ -170,6 +171,7 @@ const setupDefs = (g: d3.Selection<SVGGElement, unknown, null, undefined>) => {
 
         defs.append('radialGradient').attr('id', 'coreGradient');
         defs.append('radialGradient').attr('id', 'particleGradient');
+        defs.append('radialGradient').attr('id', 'travelerGradient');
         defs.append('radialGradient').attr('id', 'auraGradient');
     }
 };
@@ -198,6 +200,15 @@ const updateGradients = (g: d3.Selection<SVGGElement, unknown, null, undefined>,
     auraGradient.html('');
     auraGradient.append('stop').attr('offset', '50%').attr('stop-color', darkerColor.toString()).attr('stop-opacity', 0.15);
     auraGradient.append('stop').attr('offset', '100%').attr('stop-color', darkerColor.darker(1).toString()).attr('stop-opacity', 0);
+
+    // Traveler Gradient - VIBRANT Glow
+    const travelerGradient = defs.select('#travelerGradient');
+    travelerGradient.html('');
+    // Use base color but slightly brighter for the glow part, avoiding over-whitening
+    const travelerColor = baseColor.brighter(1.5);
+    travelerGradient.append('stop').attr('offset', '0%').attr('stop-color', '#ffffff').attr('stop-opacity', 1);
+    travelerGradient.append('stop').attr('offset', '50%').attr('stop-color', travelerColor.toString()).attr('stop-opacity', 1);
+    travelerGradient.append('stop').attr('offset', '100%').attr('stop-color', travelerColor.toString()).attr('stop-opacity', 0);
 };
 
 // --- Draw Functions ---
@@ -286,7 +297,7 @@ const updateAndDrawParticles = (
     particleIdCounter: React.MutableRefObject<number>,
     stage: string,
     minDim: number,
-    particleConfig: { size: number, lifetime: number, count?: number }
+    particleConfig: { size: number, lifetime: number, count?: number, showTravelers?: boolean }
 ) => {
     const particleCreationDist = minDim * 0.5;
     const particleEndDist = minDim * 0.1;
@@ -300,24 +311,34 @@ const updateAndDrawParticles = (
     if (toCreate > 0) {
         for (let i = 0; i < toCreate; i++) {
             const angle = Math.random() * Math.PI * 2;
+            const isTraveler = (particleConfig.showTravelers !== false) && (Math.random() < 0.1);
+            const lifeMult = isTraveler ? 6 : 1;
+
             if (stage === 'inhale') {
-                const r = minDim * (0.55 + Math.random() * 0.1);
+                const r = isTraveler ? minDim * (0.6 + Math.random() * 1.2) : minDim * (0.55 + Math.random() * 0.1);
                 particles.push({
                     id: particleIdCounter.current++,
                     x: Math.cos(angle) * r,
                     y: Math.sin(angle) * r,
-                    vx: 0, vy: 0,
-                    life: pLifetime, maxLife: pLifetime, opacity: 0
+                    vx: isTraveler ? (Math.random() - 0.5) * 4 : 0,
+                    vy: isTraveler ? (Math.random() - 0.5) * 4 : 0,
+                    life: pLifetime * lifeMult,
+                    maxLife: pLifetime * lifeMult,
+                    opacity: 0,
+                    isTraveler
                 });
             } else if (stage === 'exhale') {
-                const r = particleEndDist;
+                const r = isTraveler ? particleEndDist * (0.5 + Math.random()) : particleEndDist;
                 particles.push({
                     id: particleIdCounter.current++,
                     x: Math.cos(angle) * r,
                     y: Math.sin(angle) * r,
-                    vx: Math.cos(angle) * 3.0,
-                    vy: Math.sin(angle) * 3.0,
-                    life: pLifetime, maxLife: pLifetime, opacity: 0
+                    vx: isTraveler ? (Math.random() - 0.5) * 4 : Math.cos(angle) * 3.0,
+                    vy: isTraveler ? (Math.random() - 0.5) * 4 : Math.sin(angle) * 3.0,
+                    life: pLifetime * lifeMult,
+                    maxLife: pLifetime * lifeMult,
+                    opacity: 0,
+                    isTraveler
                 });
             }
         }
@@ -327,7 +348,23 @@ const updateAndDrawParticles = (
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
 
-        if (stage === 'inhale') {
+        if (p.isTraveler) {
+            // Travelers wander independently of breathe phase with more intensity
+            p.vx += (Math.random() - 0.5) * 0.35;
+            p.vy += (Math.random() - 0.5) * 0.35;
+
+            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+            const maxSpeed = 3.5;
+            if (speed > maxSpeed) {
+                p.vx = (p.vx / speed) * maxSpeed;
+                p.vy = (p.vy / speed) * maxSpeed;
+            }
+
+            p.life -= 0.5;
+            const lifePct = p.life / p.maxLife;
+            // Stronger fade peak, ensures visibility
+            p.opacity = Math.max(0.2, Math.pow(Math.sin(lifePct * Math.PI), 0.5));
+        } else if (stage === 'inhale') {
             // Target-based movement but update velocity for momentum-like feel
             const targetVx = -p.x * 0.02;
             const targetVy = -p.y * 0.02;
@@ -344,11 +381,10 @@ const updateAndDrawParticles = (
             p.vx *= 0.95;
             p.vy *= 0.95;
 
-            // Add tiny random drift
             p.vx += (Math.random() - 0.5) * 0.1;
             p.vy += (Math.random() - 0.5) * 0.1;
 
-            p.life -= 0.25; // Slower decay during holds
+            p.life -= 0.25;
             p.opacity = Math.max(0.1, p.life / p.maxLife);
         }
 
@@ -360,10 +396,10 @@ const updateAndDrawParticles = (
         p.currentVy = p.vy;
 
         const dist = Math.sqrt(p.x * p.x + p.y * p.y);
-        const maxDist = minDim * 0.65;
+        const maxDist = p.isTraveler ? minDim * 3 : minDim * 0.8;
 
         // Condition for removal
-        if (p.life <= 0 || (stage === 'inhale' && dist < 20) || dist > maxDist) {
+        if (p.life <= 0 || (!p.isTraveler && stage === 'inhale' && dist < 20) || dist > maxDist) {
             particles.splice(i, 1);
         }
     }
@@ -373,15 +409,23 @@ const updateAndDrawParticles = (
 
     particleSel.enter().append('line')
         .attr('class', 'particle')
-        .attr('stroke', 'url(#particleGradient)')
         .attr('stroke-linecap', 'round')
         .merge(particleSel as any)
+        .attr('stroke', d => d.isTraveler ? 'url(#travelerGradient)' : 'url(#particleGradient)')
         .attr('x1', d => d.x)
         .attr('y1', d => d.y)
         .attr('x2', d => d.x - d.currentVx * 3)
         .attr('y2', d => d.y - d.currentVy * 3)
         .attr('stroke-opacity', d => d.opacity)
-        .attr('stroke-width', pSize * 2);
+        .attr('stroke-width', d => {
+            if (d.isTraveler) {
+                // Massive growth
+                const lifePct = d.life / d.maxLife;
+                const scale = Math.sin(lifePct * Math.PI);
+                return pSize * (2 + scale * 15);
+            }
+            return pSize * 2;
+        });
 
     particleSel.exit().remove();
 };
@@ -400,6 +444,11 @@ const BreathingCore = ({
     const lastFrameTimeRef = useRef(0);
     const animationFrameRef = useRef<number | undefined>(undefined);
 
+    // D3 font scales - Preserving 1:5 ratio (0.8rem vs 4rem)
+    // Calibrated to match original look at ~600px container size
+    const labelFontScale = useMemo(() => d3.scaleLinear().domain([200, 1000]).range([6, 20]).clamp(true), []);
+    const counterFontScale = useMemo(() => d3.scaleLinear().domain([200, 1000]).range([30, 100]).clamp(true), []);
+
     const [drawingContext, setDrawingContext] = useState<{
         selection: d3.Selection<SVGGElement, unknown, null, undefined>;
         width: number;
@@ -417,11 +466,20 @@ const BreathingCore = ({
     const particleIdCounter = useRef(0);
     const lastStageRef = useRef<string>('');
 
-    const [hudState, setHudState] = React.useState<{ phase: string; displayValue: string; currentColor: string; currentTextColor: string }>({
+    const [hudState, setHudState] = React.useState<{
+        phase: string;
+        displayValue: string;
+        currentColor: string;
+        currentTextColor: string;
+        labelFontSize: number;
+        counterFontSize: number;
+    }>({
         phase: 'Inhale',
         displayValue: '',
         currentColor: theme.inhaleColor,
-        currentTextColor: theme.inhaleTextColor
+        currentTextColor: theme.inhaleTextColor,
+        labelFontSize: 12,
+        counterFontSize: 48
     });
 
     const audioRef = useRef<BreathingAudio | null>(null);
@@ -563,10 +621,27 @@ const BreathingCore = ({
 
         const textVal = getDisplayText(counter.mode, tCycle, elapsed, stage, stageDurations, counter.currentValue);
 
+        const labelFontSize = labelFontScale(minDim);
+        const counterFontSize = counterFontScale(minDim);
+
         setHudState(prev => {
             const newPhase = stage === 'holdFull' ? 'Hold' : stage === 'holdEmpty' ? 'Hold' : stage.charAt(0).toUpperCase() + stage.slice(1);
-            if (prev.phase !== newPhase || prev.displayValue !== textVal || prev.currentColor !== currentColor || prev.currentTextColor !== currentTextColor) {
-                return { phase: newPhase, displayValue: textVal, currentColor, currentTextColor };
+            if (
+                prev.phase !== newPhase ||
+                prev.displayValue !== textVal ||
+                prev.currentColor !== currentColor ||
+                prev.currentTextColor !== currentTextColor ||
+                prev.labelFontSize !== labelFontSize ||
+                prev.counterFontSize !== counterFontSize
+            ) {
+                return {
+                    phase: newPhase,
+                    displayValue: textVal,
+                    currentColor,
+                    currentTextColor,
+                    labelFontSize,
+                    counterFontSize
+                };
             }
             return prev;
         });
@@ -578,7 +653,8 @@ const BreathingCore = ({
         const safeParticleConfig = {
             size: particleConfig.size || 2,
             lifetime: particleConfig.lifetime || 100,
-            count: particleConfig.count
+            count: particleConfig.count,
+            showTravelers: particleConfig.showTravelers ?? true
         };
         updateAndDrawParticles(mainG, particlesRef.current, particleIdCounter, stage, minDim, safeParticleConfig);
     };
@@ -590,9 +666,19 @@ const BreathingCore = ({
                 margin={zeroMargin}
             />
             <HUDText>
-                <PhaseLabel $color={hudState.currentTextColor}>{hudState.phase}</PhaseLabel>
+                <PhaseLabel
+                    $color={hudState.currentTextColor}
+                    $fontSize={hudState.labelFontSize}
+                >
+                    {hudState.phase}
+                </PhaseLabel>
                 {counter.mode !== 'off' && (
-                    <CounterText $color={hudState.currentTextColor}>{hudState.displayValue}</CounterText>
+                    <CounterText
+                        $color={hudState.currentTextColor}
+                        $fontSize={hudState.counterFontSize}
+                    >
+                        {hudState.displayValue}
+                    </CounterText>
                 )}
             </HUDText>
         </Container>

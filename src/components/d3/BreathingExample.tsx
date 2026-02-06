@@ -54,6 +54,7 @@ const BreathingExample = () => {
     const [particleSize, setParticleSize] = useState(5);
     const [particleLifetime, setParticleLifetime] = useState(400);
     const [particleCount, setParticleCount] = useState(50);
+    const [showTravelers, setShowTravelers] = useState(true);
 
     // Audio Settings
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
@@ -104,7 +105,8 @@ const BreathingExample = () => {
                     particleConfig={{
                         size: particleSize,
                         lifetime: particleLifetime,
-                        count: particleCount
+                        count: particleCount,
+                        showTravelers: showTravelers
                     }}
                     audioConfig={{
                         enabled: isAudioEnabled,
@@ -294,6 +296,11 @@ const BreathingExample = () => {
 
                     <ControlSection>
                         <Label>Particles</Label>
+                        <ToggleControl
+                            label="Show Traveling Particles"
+                            checked={showTravelers}
+                            onChange={setShowTravelers}
+                        />
                         <RangeControl
                             label="Size"
                             value={particleSize}
