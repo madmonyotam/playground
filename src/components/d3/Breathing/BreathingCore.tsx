@@ -6,14 +6,17 @@ import { BreathingAudio } from './BreathingAudio';
 
 // --- Styled Components ---
 
-const Container = styled.div`
+const Container = styled.div<{ $bg: string }>`
   width: 100%;
   height: 100%;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: radial-gradient(circle at center, #1a1e2e 0%, #000000 100%);
+  background: ${({ $bg }) => {
+        const color = d3.rgb($bg);
+        return `radial-gradient(circle at center, ${color.toString()} 0%, ${color.darker(2).toString()} 100%)`;
+    }};
   overflow: hidden;
   color: #fff;
   font-family: 'Inter', sans-serif;
@@ -71,10 +74,12 @@ export interface BreathingComponentProps {
         exhaleColor: string;
         inhaleTextColor: string;
         exhaleTextColor: string;
+        backgroundColor?: string;
     };
     particleConfig?: {
         size?: number;
         lifetime?: number;
+        count?: number;
     };
     audioConfig?: {
         enabled: boolean;
@@ -281,72 +286,83 @@ const updateAndDrawParticles = (
     particleIdCounter: React.MutableRefObject<number>,
     stage: string,
     minDim: number,
-    particleConfig: { size: number, lifetime: number }
+    particleConfig: { size: number, lifetime: number, count?: number }
 ) => {
     const particleCreationDist = minDim * 0.5;
     const particleEndDist = minDim * 0.1;
     const pLifetime = particleConfig.lifetime;
     const pSize = particleConfig.size;
+    const count = particleConfig.count ?? 50;
+    const pPerFrame = count / 60;
+    const toCreate = Math.floor(pPerFrame) + (Math.random() < (pPerFrame % 1) ? 1 : 0);
 
     // Emission
-    if (stage === 'inhale' && Math.random() < 0.8) {
-        const angle = Math.random() * Math.PI * 2;
-        const r = minDim * (0.55 + Math.random() * 0.1);
-        particles.push({
-            id: particleIdCounter.current++,
-            x: Math.cos(angle) * r,
-            y: Math.sin(angle) * r,
-            vx: 0, vy: 0,
-            life: pLifetime, maxLife: pLifetime, opacity: 0
-        });
-    } else if (stage === 'exhale' && Math.random() < 0.6) {
-        const angle = Math.random() * Math.PI * 2;
-        const r = particleEndDist;
-        particles.push({
-            id: particleIdCounter.current++,
-            x: Math.cos(angle) * r,
-            y: Math.sin(angle) * r,
-            vx: Math.cos(angle) * 3.0,
-            vy: Math.sin(angle) * 3.0,
-            life: pLifetime, maxLife: pLifetime, opacity: 0
-        });
+    if (toCreate > 0) {
+        for (let i = 0; i < toCreate; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            if (stage === 'inhale') {
+                const r = minDim * (0.55 + Math.random() * 0.1);
+                particles.push({
+                    id: particleIdCounter.current++,
+                    x: Math.cos(angle) * r,
+                    y: Math.sin(angle) * r,
+                    vx: 0, vy: 0,
+                    life: pLifetime, maxLife: pLifetime, opacity: 0
+                });
+            } else if (stage === 'exhale') {
+                const r = particleEndDist;
+                particles.push({
+                    id: particleIdCounter.current++,
+                    x: Math.cos(angle) * r,
+                    y: Math.sin(angle) * r,
+                    vx: Math.cos(angle) * 3.0,
+                    vy: Math.sin(angle) * 3.0,
+                    life: pLifetime, maxLife: pLifetime, opacity: 0
+                });
+            }
+        }
     }
 
     // Update
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        let dx = 0;
-        let dy = 0;
 
         if (stage === 'inhale') {
-            dx = -p.x * 0.02;
-            dy = -p.y * 0.02;
-            p.x += dx;
-            p.y += dy;
+            // Target-based movement but update velocity for momentum-like feel
+            const targetVx = -p.x * 0.02;
+            const targetVy = -p.y * 0.02;
+            p.vx = targetVx;
+            p.vy = targetVy;
             p.life -= 0.5;
             p.opacity = Math.min(1, p.opacity + 0.02);
         } else if (stage === 'exhale') {
-            dx = p.vx;
-            dy = p.vy;
-            p.x += dx;
-            p.y += dy;
+            // Standard outward velocity set at creation
             p.life -= 1;
             p.opacity = p.life / p.maxLife;
         } else {
-            dx = (Math.random() - 0.5) * 0.5;
-            dy = (Math.random() - 0.5) * 0.5;
-            p.x += dx;
-            p.y += dy;
-            p.life -= 0.5;
-            p.opacity -= 0.005;
+            // Hold phases: Apply damping to current velocity + a very subtle Brownian/drift motion
+            p.vx *= 0.95;
+            p.vy *= 0.95;
+
+            // Add tiny random drift
+            p.vx += (Math.random() - 0.5) * 0.1;
+            p.vy += (Math.random() - 0.5) * 0.1;
+
+            p.life -= 0.25; // Slower decay during holds
+            p.opacity = Math.max(0.1, p.life / p.maxLife);
         }
 
-        p.currentVx = dx;
-        p.currentVy = dy;
+        // Apply calculated velocity
+        p.x += p.vx;
+        p.y += p.vy;
+
+        p.currentVx = p.vx;
+        p.currentVy = p.vy;
 
         const dist = Math.sqrt(p.x * p.x + p.y * p.y);
         const maxDist = minDim * 0.65;
 
+        // Condition for removal
         if (p.life <= 0 || (stage === 'inhale' && dist < 20) || dist > maxDist) {
             particles.splice(i, 1);
         }
@@ -561,13 +577,14 @@ const BreathingCore = ({
 
         const safeParticleConfig = {
             size: particleConfig.size || 2,
-            lifetime: particleConfig.lifetime || 100
+            lifetime: particleConfig.lifetime || 100,
+            count: particleConfig.count
         };
         updateAndDrawParticles(mainG, particlesRef.current, particleIdCounter, stage, minDim, safeParticleConfig);
     };
 
     return (
-        <Container>
+        <Container $bg={theme.backgroundColor || '#1a1e2e'}>
             <BaseChart
                 onReady={handleReady}
                 margin={zeroMargin}

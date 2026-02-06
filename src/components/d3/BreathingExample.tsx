@@ -33,6 +33,7 @@ const BreathingExample = () => {
     const [exhaleColor, setExhaleColor] = useState('#1e3a8a');
     const [inhaleTextColor, setInhaleTextColor] = useState('#ffffff');
     const [exhaleTextColor, setExhaleTextColor] = useState('#e0f2fe');
+    const [backgroundColor, setBackgroundColor] = useState('#1a1e2e');
     const [containerHeight, setContainerHeight] = useState(600);
 
     // Stage Durations (seconds)
@@ -52,6 +53,7 @@ const BreathingExample = () => {
     // Particle Settings
     const [particleSize, setParticleSize] = useState(5);
     const [particleLifetime, setParticleLifetime] = useState(400);
+    const [particleCount, setParticleCount] = useState(50);
 
     // Audio Settings
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
@@ -96,11 +98,13 @@ const BreathingExample = () => {
                         inhaleColor: inhaleColor,
                         exhaleColor: exhaleColor,
                         inhaleTextColor: inhaleTextColor,
-                        exhaleTextColor: exhaleTextColor
+                        exhaleTextColor: exhaleTextColor,
+                        backgroundColor: backgroundColor
                     }}
                     particleConfig={{
                         size: particleSize,
-                        lifetime: particleLifetime
+                        lifetime: particleLifetime,
+                        count: particleCount
                     }}
                     audioConfig={{
                         enabled: isAudioEnabled,
@@ -216,6 +220,11 @@ const BreathingExample = () => {
                                 value={exhaleTextColor}
                                 onChange={setExhaleTextColor}
                             />
+                            <ColorControl
+                                label="Background Color"
+                                value={backgroundColor}
+                                onChange={setBackgroundColor}
+                            />
                         </div>
                     </ControlSection>
 
@@ -290,6 +299,12 @@ const BreathingExample = () => {
                             value={particleSize}
                             onChange={setParticleSize}
                             min={1} max={10} step={0.5} unit="px"
+                        />
+                        <RangeControl
+                            label="Density"
+                            value={particleCount}
+                            onChange={setParticleCount}
+                            min={0} max={200} step={5}
                         />
                         <RangeControl
                             label="Lifetime"
