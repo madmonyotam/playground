@@ -20,7 +20,7 @@ const ExampleContainer = styled.div<{ $height: number }>`
   width: 100%;
   height: ${({ $height }) => $height}px;
   position: relative;
-  background-color: #000;
+  background-color: #000000;
   border-radius: 8px;
   overflow: hidden;
   transition: height 0.3s ease;
@@ -29,8 +29,10 @@ const ExampleContainer = styled.div<{ $height: number }>`
 const BreathingExample = () => {
     // State
     const [isPlaying, setIsPlaying] = useState(true);
-    const [themeHue, setThemeHue] = useState(190); // Teal by default
-    const [textColor, setTextColor] = useState('#ffffff');
+    const [inhaleColor, setInhaleColor] = useState('#60a5fa');
+    const [exhaleColor, setExhaleColor] = useState('#1e3a8a');
+    const [inhaleTextColor, setInhaleTextColor] = useState('#ffffff');
+    const [exhaleTextColor, setExhaleTextColor] = useState('#e0f2fe');
     const [containerHeight, setContainerHeight] = useState(600);
 
     // Stage Durations (seconds)
@@ -48,8 +50,8 @@ const BreathingExample = () => {
     const [breathCount, setBreathCount] = useState(0);
 
     // Particle Settings
-    const [particleSize, setParticleSize] = useState(2);
-    const [particleLifetime, setParticleLifetime] = useState(200);
+    const [particleSize, setParticleSize] = useState(5);
+    const [particleLifetime, setParticleLifetime] = useState(400);
 
     // Audio Settings
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
@@ -91,8 +93,10 @@ const BreathingExample = () => {
                         currentValue: breathCount
                     }}
                     theme={{
-                        primaryHue: themeHue,
-                        textColor: textColor
+                        inhaleColor: inhaleColor,
+                        exhaleColor: exhaleColor,
+                        inhaleTextColor: inhaleTextColor,
+                        exhaleTextColor: exhaleTextColor
                     }}
                     particleConfig={{
                         size: particleSize,
@@ -192,16 +196,25 @@ const BreathingExample = () => {
                         </ButtonGroup>
 
                         <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <RangeControl
-                                label="Theme Hue"
-                                value={themeHue}
-                                onChange={setThemeHue}
-                                min={0} max={360} step={5}
+                            <ColorControl
+                                label="Inhale Color"
+                                value={inhaleColor}
+                                onChange={setInhaleColor}
                             />
                             <ColorControl
-                                label="Text Color"
-                                value={textColor}
-                                onChange={setTextColor}
+                                label="Exhale Color"
+                                value={exhaleColor}
+                                onChange={setExhaleColor}
+                            />
+                            <ColorControl
+                                label="Inhale Text Color"
+                                value={inhaleTextColor}
+                                onChange={setInhaleTextColor}
+                            />
+                            <ColorControl
+                                label="Exhale Text Color"
+                                value={exhaleTextColor}
+                                onChange={setExhaleTextColor}
                             />
                         </div>
                     </ControlSection>

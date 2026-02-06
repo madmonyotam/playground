@@ -29,30 +29,25 @@ const HUDText = styled.div`
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  mix-blend-mode: screen;
   gap: 1rem;
 `;
 
-const PhaseLabel = styled.div<{ $textColor?: string; $hue: number }>`
+const PhaseLabel = styled.div<{ $textColor?: string; $color: string }>`
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.8rem;
-  opacity: 0.9;
-  color: ${({ $textColor, $hue }) => $textColor || `hsl(${$hue}, 100%, 80%)`};
-  text-shadow: 0 0 10px ${({ $hue }) => `hsl(${$hue}, 80%, 40%)`};
-  transition: color 0.3s ease, text-shadow 0.3s ease;
+  color: ${({ $textColor, $color }) => $textColor || $color};
+  text-shadow: 0 0 10px ${({ $color }) => $color};
 `;
 
-const CounterText = styled.div<{ $textColor?: string; $hue: number }>`
+const CounterText = styled.div<{ $textColor?: string; $color: string }>`
   font-size: 4rem;
   font-weight: 200;
-  opacity: 0.9;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: ${({ $textColor, $hue }) => $textColor || `hsl(${$hue}, 100%, 80%)`};
-  text-shadow: 0 0 15px ${({ $hue }) => `hsl(${$hue}, 80%, 40%)`};
-  transition: color 0.3s ease, text-shadow 0.3s ease;
+  color: ${({ $textColor, $color }) => $textColor || $color};
+  text-shadow: 0 0 15px ${({ $color }) => $color};
 `;
 
 // --- Types ---
@@ -72,8 +67,10 @@ export interface BreathingComponentProps {
         currentValue?: number;
     };
     theme?: {
-        primaryHue: number;
-        textColor?: string;
+        inhaleColor: string;
+        exhaleColor: string;
+        inhaleTextColor: string;
+        exhaleTextColor: string;
     };
     particleConfig?: {
         size?: number;
@@ -172,25 +169,30 @@ const setupDefs = (g: d3.Selection<SVGGElement, unknown, null, undefined>) => {
     }
 };
 
-const updateGradients = (g: d3.Selection<SVGGElement, unknown, null, undefined>, hue: number) => {
+const updateGradients = (g: d3.Selection<SVGGElement, unknown, null, undefined>, color: string) => {
     const defs = g.select('defs');
     if (defs.empty()) return;
 
+    const baseColor = d3.rgb(color);
+    const lighterColor = baseColor.brighter(1);
+    const darkerColor = baseColor.darker(2);
+
     const coreGradient = defs.select('#coreGradient');
     coreGradient.html('');
-    coreGradient.append('stop').attr('offset', '0%').attr('stop-color', `hsl(${hue}, 60%, 80%)`).attr('stop-opacity', 0.8);
-    coreGradient.append('stop').attr('offset', '40%').attr('stop-color', `hsl(${hue}, 80%, 50%)`).attr('stop-opacity', 0.6);
-    coreGradient.append('stop').attr('offset', '100%').attr('stop-color', `hsl(${hue + 40}, 90%, 30%)`).attr('stop-opacity', 0);
+    // Use lighter version for center, exact base color for body, and darker fading out for edge
+    coreGradient.append('stop').attr('offset', '0%').attr('stop-color', lighterColor.toString()).attr('stop-opacity', 0.9);
+    coreGradient.append('stop').attr('offset', '40%').attr('stop-color', baseColor.toString()).attr('stop-opacity', 0.7);
+    coreGradient.append('stop').attr('offset', '100%').attr('stop-color', darkerColor.toString()).attr('stop-opacity', 0);
 
     const particleGradient = defs.select('#particleGradient');
     particleGradient.html('');
     particleGradient.append('stop').attr('offset', '0%').attr('stop-color', '#ffffff').attr('stop-opacity', 1);
-    particleGradient.append('stop').attr('offset', '100%').attr('stop-color', `hsl(${hue}, 80%, 60%)`).attr('stop-opacity', 0);
+    particleGradient.append('stop').attr('offset', '100%').attr('stop-color', baseColor.toString()).attr('stop-opacity', 0);
 
     const auraGradient = defs.select('#auraGradient');
     auraGradient.html('');
-    auraGradient.append('stop').attr('offset', '50%').attr('stop-color', `hsl(${hue - 20}, 50%, 40%)`).attr('stop-opacity', 0.1);
-    auraGradient.append('stop').attr('offset', '100%').attr('stop-color', `hsl(${hue}, 50%, 10%)`).attr('stop-opacity', 0);
+    auraGradient.append('stop').attr('offset', '50%').attr('stop-color', darkerColor.toString()).attr('stop-opacity', 0.15);
+    auraGradient.append('stop').attr('offset', '100%').attr('stop-color', darkerColor.darker(1).toString()).attr('stop-opacity', 0);
 };
 
 // --- Draw Functions ---
@@ -250,7 +252,7 @@ const drawBlob = (
 const drawProgressRing = (
     mainG: d3.Selection<any, any, any, any>,
     radius: number,
-    themeHue: number,
+    color: string,
     stageProgress: number
 ) => {
     const arcGen = d3.arc()
@@ -269,7 +271,7 @@ const drawProgressRing = (
     const ring = mainG.selectAll('path.progress-ring').data([endAngle]);
     ring.enter().append('path').attr('class', 'progress-ring')
         .merge(ring as any)
-        .attr('fill', `hsl(${themeHue}, 80%, 60%)`)
+        .attr('fill', color)
         .attr('d', (d) => arcGen({ endAngle: d } as any));
 };
 
@@ -374,7 +376,7 @@ const BreathingCore = ({
     isPlaying,
     stageDurations,
     counter,
-    theme = { primaryHue: 190 },
+    theme = { inhaleColor: '#60a5fa', exhaleColor: '#1e3a8a', inhaleTextColor: '#ffffff', exhaleTextColor: '#e0f2fe' },
     particleConfig = { size: 2, lifetime: 100 },
     audioConfig = { enabled: false, volume: 0.5, isMuted: false }
 }: BreathingComponentProps) => {
@@ -399,9 +401,11 @@ const BreathingCore = ({
     const particleIdCounter = useRef(0);
     const lastStageRef = useRef<string>('');
 
-    const [hudState, setHudState] = React.useState<{ phase: string; displayValue: string }>({
+    const [hudState, setHudState] = React.useState<{ phase: string; displayValue: string; currentColor: string; currentTextColor: string }>({
         phase: 'Inhale',
-        displayValue: ''
+        displayValue: '',
+        currentColor: theme.inhaleColor,
+        currentTextColor: theme.inhaleTextColor
     });
 
     const audioRef = useRef<BreathingAudio | null>(null);
@@ -471,12 +475,12 @@ const BreathingCore = ({
         setupDefs(g);
     }, [drawingContext]);
 
-    // Update Gradients
+    // Initial Gradient Setup
     useEffect(() => {
         if (!drawingContext) return;
         const { selection: g } = drawingContext;
-        updateGradients(g, theme.primaryHue);
-    }, [drawingContext, theme.primaryHue]);
+        updateGradients(g, theme.inhaleColor); // Start with inhale color
+    }, [drawingContext]);
 
     // Animation Loop
     useEffect(() => {
@@ -528,19 +532,32 @@ const BreathingCore = ({
             }
         }
 
+        // Interpolate Color
+        let colorProgress = 0;
+        if (stage === 'inhale') colorProgress = stageProgress;
+        else if (stage === 'holdFull') colorProgress = 1;
+        else if (stage === 'exhale') colorProgress = 1 - stageProgress;
+        else colorProgress = 0;
+
+        const currentColor = d3.interpolateRgb(theme.exhaleColor, theme.inhaleColor)(colorProgress);
+        const currentTextColor = d3.interpolateRgb(theme.exhaleTextColor, theme.inhaleTextColor)(colorProgress);
+
+        updateGradients(g, currentColor);
+
+
         const textVal = getDisplayText(counter.mode, tCycle, elapsed, stage, stageDurations, counter.currentValue);
 
         setHudState(prev => {
             const newPhase = stage === 'holdFull' ? 'Hold' : stage === 'holdEmpty' ? 'Hold' : stage.charAt(0).toUpperCase() + stage.slice(1);
-            if (prev.phase !== newPhase || prev.displayValue !== textVal) {
-                return { phase: newPhase, displayValue: textVal };
+            if (prev.phase !== newPhase || prev.displayValue !== textVal || prev.currentColor !== currentColor || prev.currentTextColor !== currentTextColor) {
+                return { phase: newPhase, displayValue: textVal, currentColor, currentTextColor };
             }
             return prev;
         });
 
         const mainG = drawBlob(g, center, elapsed, stage, stageProgress, blobBaseRadius, blobMaxGrowth, blobConfig);
 
-        drawProgressRing(mainG, ringRadius, theme.primaryHue, stageProgress);
+        drawProgressRing(mainG, ringRadius, currentColor, stageProgress);
 
         const safeParticleConfig = {
             size: particleConfig.size || 2,
@@ -556,13 +573,14 @@ const BreathingCore = ({
                 margin={zeroMargin}
             />
             <HUDText>
-                <PhaseLabel $textColor={theme.textColor} $hue={theme.primaryHue}>{hudState.phase}</PhaseLabel>
+                <PhaseLabel $color={hudState.currentTextColor}>{hudState.phase}</PhaseLabel>
                 {counter.mode !== 'off' && (
-                    <CounterText $textColor={theme.textColor} $hue={theme.primaryHue}>{hudState.displayValue}</CounterText>
+                    <CounterText $color={hudState.currentTextColor}>{hudState.displayValue}</CounterText>
                 )}
             </HUDText>
         </Container>
     );
 };
+
 
 export default BreathingCore;
