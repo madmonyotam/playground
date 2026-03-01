@@ -44,14 +44,14 @@ interface Particle {
 const zeroMargin = { top: 0, right: 0, bottom: 0, left: 0 };
 
 const RadiatingThoughtsCore = ({
-    colors = ['#60a5fa', '#34d399', '#f472b6', '#fbbf24'],
+    colors = ['#3b4551'],
     maxThoughts = 100,
-    speed = 1.0,
-    thickness = 2.0,
+    speed = 0.5,
+    thickness = 1.0,
     distance = 300,
-    opacity = 0.8,
+    opacity = 0.5,
     tailLength = 20,
-    dotSize = 4.0
+    dotSize = 2.0
 }: RadiatingThoughtsProps) => {
     const timeRef = useRef(0);
     const lastFrameTimeRef = useRef(0);
