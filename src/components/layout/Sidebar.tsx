@@ -108,6 +108,7 @@ export const Sidebar = () => {
         <NavItemLink href="/playground/d3/meshed-sphere" $active={isActive('/playground/d3/meshed-sphere')}>Meshed Sphere Matrix</NavItemLink>
         <NavItemLink href="/playground/d3/lumen-memory-flow" $active={isActive('/playground/d3/lumen-memory-flow')}>Lumen Memory Flow</NavItemLink>
         <NavItemLink href="/playground/d3/radiating-thoughts" $active={isActive('/playground/d3/radiating-thoughts')}>Radiating Thoughts</NavItemLink>
+        <NavItemLink href="/playground/d3/spectrogram" $active={isActive('/playground/d3/spectrogram')}>Spectrogram</NavItemLink>
         <NavItemLink href="/playground/d3" $active={isActive('/playground/d3')}>Mussel Line Monitor</NavItemLink>
       </NavSection>
 
